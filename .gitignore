@@ -1,0 +1,29 @@
+# Dependencies
+/node_modules
+
+# Build output
+/dist
+/www
+
+# Angular cache
+/.angular
+
+# Capacitor
+/android
+/ios
+
+# IDE
+/.vscode
+/.idea
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db

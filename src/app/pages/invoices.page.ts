@@ -1,0 +1,10 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
+import { MobileShellComponent } from '../shared/mobile-shell.component';
+import { INVOICES } from '../data/mock-data';
+@Component({ selector:'app-invoices', standalone:true, imports:[CommonModule, FormsModule, RouterLink, IonicModule, MobileShellComponent], template:`
+<wf-customer-shell title="Invoices" subtitle="Billing and payment history" backRoute="/home"><main class="screen-body stack"><ion-card class="wf-card hero-card"><ion-card-content><span class="pill dark">Current balance</span><h2 style="font-size:36px;margin:14px 0 4px">$1,610.70</h2><p style="margin:0;opacity:.72">1 open invoice · Net 30 terms</p></ion-card-content></ion-card><ion-segment [(ngModel)]="filter"><ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button><ion-segment-button value="open"><ion-label>Open</ion-label></ion-segment-button><ion-segment-button value="paid"><ion-label>Paid</ion-label></ion-segment-button></ion-segment><ion-card *ngFor="let invoice of visibleInvoices" class="wf-card" routerLink="/invoice-detail"><ion-card-content><div class="row-between"><span class="pill" [class.warning]="invoice.status==='Open'" [class.success]="invoice.status==='Paid'">{{invoice.status}}</span><strong>{{invoice.id}}</strong></div><h2>{{invoice.amount | currency}}</h2><p class="caption">Order {{invoice.orderId}}</p><div class="detail-row"><span>Issued {{invoice.date}}</span><strong>Due {{invoice.due}}</strong></div></ion-card-content></ion-card></main></wf-customer-shell>` })
+export class InvoicesPage { filter='all';readonly invoices=INVOICES;get visibleInvoices(){if(this.filter==='open')return this.invoices.filter(x=>x.status==='Open');if(this.filter==='paid')return this.invoices.filter(x=>x.status==='Paid');return this.invoices;} }

@@ -1,0 +1,10 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
+import { MobileShellComponent } from '../shared/mobile-shell.component';
+
+@Component({ selector:'app-invoice-detail', standalone:true, imports:[CommonModule, IonicModule, MobileShellComponent], template:`
+<wf-customer-shell title="Invoice INV-10482" subtitle="Open · Due July 24" backRoute="/invoices"><main class="screen-body stack"><ion-card class="wf-card hero-card"><ion-card-content><span class="pill dark">Amount due</span><h2 style="font-size:38px;margin:14px 0 4px">$1,610.70</h2><p style="margin:0;opacity:.72">Payment terms: Net 30</p></ion-card-content></ion-card><ion-card class="wf-card"><ion-card-content><div class="detail-row"><span>Fuel delivery</span><strong>420 gal × $3.54</strong></div><div class="detail-row"><span>Fuel subtotal</span><strong>$1,486.80</strong></div><div class="detail-row"><span>Federal & state taxes</span><strong>$102.90</strong></div><div class="detail-row"><span>Delivery/service fee</span><strong>$21.00</strong></div><div class="detail-row"><span>Total</span><strong>$1,610.70</strong></div></ion-card-content></ion-card><ion-card class="wf-card"><ion-card-content><div class="detail-row"><span>Order</span><strong>WF-77842</strong></div><div class="detail-row"><span>Delivery date</span><strong>June 24, 2026</strong></div><div class="detail-row"><span>Location</span><strong>North Yard</strong></div><div class="detail-row"><span>QuickBooks status</span><strong>Synced</strong></div></ion-card-content></ion-card><ion-button class="wf-button" expand="block"><ion-icon name="download-outline" slot="start"></ion-icon>Download PDF invoice</ion-button><ion-button class="wf-button wf-secondary" expand="block"><ion-icon name="mail-outline" slot="start"></ion-icon>Email invoice</ion-button><p class="caption text-center">Online payment processing is not included in this phase. Contact billing for payment instructions.</p></main></wf-customer-shell>` })
+export class InvoiceDetailPage {  }

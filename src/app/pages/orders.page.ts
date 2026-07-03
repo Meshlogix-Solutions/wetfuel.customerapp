@@ -1,0 +1,10 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { IonicModule } from '@ionic/angular';
+import { MobileShellComponent } from '../shared/mobile-shell.component';
+import { ORDERS } from '../data/mock-data';
+@Component({ selector:'app-orders', standalone:true, imports:[CommonModule, FormsModule, RouterLink, IonicModule, MobileShellComponent], template:`
+<wf-customer-shell title="My orders" subtitle="Fuel deliveries" [showNav]="true"><main class="screen-body stack"><ion-segment [(ngModel)]="filter"><ion-segment-button value="active"><ion-label>Active</ion-label></ion-segment-button><ion-segment-button value="past"><ion-label>Past</ion-label></ion-segment-button><ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button></ion-segment><ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>New fuel order</ion-button><ion-card *ngFor="let order of visibleOrders" class="wf-card" routerLink="/order-status"><ion-card-content><div class="row-between"><span class="pill" [class.info]="order.status==='Driver en route'" [class.success]="order.status==='Completed'" [class.warning]="order.status==='Scheduled'">{{order.status}}</span><strong>{{order.id}}</strong></div><h3>{{order.location}}</h3><p class="caption">{{order.equipment}}</p><div class="detail-row"><span>{{order.date}} · {{order.time}}</span><strong>{{order.gallons}} gal</strong></div><div class="row-between" style="padding-top:10px"><span class="caption">{{order.fuel}}</span><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card></main></wf-customer-shell>` })
+export class OrdersPage { filter='active'; readonly orders=ORDERS; get visibleOrders(){if(this.filter==='active')return this.orders.filter(x=>x.status!=='Completed');if(this.filter==='past')return this.orders.filter(x=>x.status==='Completed');return this.orders;} }
