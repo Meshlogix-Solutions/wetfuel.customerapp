@@ -2,10 +2,10 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { IonButton, IonCard, IonCardContent, IonIcon } from '@ionic/angular/standalone';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 import { ORDERS } from '../data/mock-data';
-@Component({ selector:'app-home', standalone:true, imports:[CommonModule, RouterLink, IonicModule, MobileShellComponent], template:`
+@Component({ selector:'app-home', standalone:true, imports:[CommonModule, RouterLink, IonButton, IonCard, IonCardContent, IonIcon, MobileShellComponent], template:`
 <wf-customer-shell title="Good morning, Sarah" subtitle="Friday · July 3" [showNav]="true"><main class="screen-body stack">
 <ion-card class="wf-card hero-card"><ion-card-content><div class="row-between"><div><span class="pill dark">Driver en route</span><h2 style="margin:16px 0 5px">Your delivery is 24 min away</h2><p style="margin:0;opacity:.75">Order WF-78312 · Main Warehouse</p></div><div class="icon-tile" style="background:rgba(255,255,255,.14);color:#fff"><ion-icon name="truck-outline"></ion-icon></div></div><div style="height:16px"></div><ion-button class="wf-button" color="tertiary" expand="block" routerLink="/live-tracking">Track live delivery</ion-button></ion-card-content></ion-card>
 <ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>Order fuel</ion-button>
