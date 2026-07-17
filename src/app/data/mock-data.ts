@@ -1,5 +1,5 @@
 export interface CustomerLocation { id: string; name: string; address: string; distance?: string; primary?: boolean; }
-export interface Equipment { id: string; name: string; type: string; fuel: string; capacity: number; current: number; location: string; status: string; }
+export interface Equipment { id: string; name: string; type: string; fuel: string; capacity: number; current: number; location: string; status: string; siteId?:string; qrCode?:string; manufacturer?:string; model?:string; serialNumber?:string; accessNotes?:string; totalFuelingEvents?:number; totalGallonsDelivered?:number; lastFueledAt?:string; }
 export interface CustomerOrder { id: string; status: string; date: string; time: string; gallons: number; fuel: string; location: string; equipment: string; eta?: string; total?: number; }
 export interface Invoice { id: string; orderId: string; date: string; due: string; amount: number; status: string; }
 
