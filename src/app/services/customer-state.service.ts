@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { EQUIPMENT, LOCATIONS } from '../data/mock-data';
-import { AddSiteRequest, CustomerApiService, CustomerEquipment, CustomerOrder, CustomerProfile, CustomerSite, EquipmentInput } from './customer-api.service';
+import { AddSiteRequest, CustomerApiService, CustomerEquipment, CustomerJob, CustomerOrder, CustomerProfile, CustomerSite, EquipmentInput } from './customer-api.service';
 
 const CACHE_KEY='wetfuel_customer_bootstrap';
 @Injectable({ providedIn: 'root' })
@@ -12,6 +12,7 @@ export class CustomerStateService {
   readonly equipment=signal(EQUIPMENT);
   readonly initialized=signal(false);
   readonly orders=signal<CustomerOrder[]>([]);
+  readonly jobs=signal<CustomerJob[]>([]);
   readonly lastOrder=signal<CustomerOrder|null>(null);
   readonly selectedLocation=signal(LOCATIONS[0]);
   readonly selectedEquipment=signal(EQUIPMENT[0]);
@@ -24,7 +25,7 @@ export class CustomerStateService {
 
   constructor(){const cached=localStorage.getItem(CACHE_KEY);if(cached){try{this.apply(JSON.parse(cached));}catch{localStorage.removeItem(CACHE_KEY);}}}
   async initialize():Promise<void>{if(!localStorage.getItem('customer_access_token')){this.initialized.set(true);return;}try{await this.refresh();}catch{this.initialized.set(true);}}
-  async refresh():Promise<void>{try{const [profile,equipment,orders]=await Promise.all([firstValueFrom(this.api.bootstrap()),firstValueFrom(this.api.getEquipment()),firstValueFrom(this.api.getOrders())]);localStorage.setItem(CACHE_KEY,JSON.stringify(profile));this.apply(profile);this.applyEquipment(equipment);this.orders.set(orders);}finally{this.initialized.set(true);}}
+  async refresh():Promise<void>{try{const [profile,equipment,orders,jobs]=await Promise.all([firstValueFrom(this.api.bootstrap()),firstValueFrom(this.api.getEquipment()),firstValueFrom(this.api.getOrders()),firstValueFrom(this.api.getJobs())]);localStorage.setItem(CACHE_KEY,JSON.stringify(profile));this.apply(profile);this.applyEquipment(equipment);this.orders.set(orders);this.jobs.set(jobs);}finally{this.initialized.set(true);}}
   async addSite(request:AddSiteRequest):Promise<void>{await firstValueFrom(this.api.addSite(request));await this.refresh();}
   setLocation(id:string):void{const found=this.sites().find(x=>x.id===id);if(found){this.selectedLocation.set({id:found.id,name:found.name,address:this.address(found),primary:found.isDefault});const equipment=this.equipment().find(x=>x.siteId===id&&x.status==='active');if(equipment)this.selectedEquipment.set(equipment);}}
   async addEquipment(request:EquipmentInput):Promise<void>{await firstValueFrom(this.api.createEquipment(request));await this.refresh();}
