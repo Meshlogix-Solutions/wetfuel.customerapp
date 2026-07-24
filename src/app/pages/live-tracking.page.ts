@@ -16,5 +16,5 @@ export class LiveTrackingPage {
   ngOnInit():void{const id=this.route.snapshot.paramMap.get('id');if(id)this.api.getJob(id).subscribe(x=>this.job.set(x));}
   label(value:string):string{return value.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase());}
   initials(name?:string):string{return (name||'DP').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();}
-  message(job:CustomerJob):string{return ({pending:'Waiting for driver assignment',assigned:'Driver assigned',started:'Driver is traveling to your site',arrived:'Driver has arrived',equipment_verified:'Equipment verified',fueling:'Fuel delivery in progress',proof_pending:'Delivery proof is being finalized',completed:'Delivery completed'} as Record<string,string>)[job.status]||'Dispatch is being updated';}
+  message(job:CustomerJob):string{return ({pending:'Waiting for driver assignment',assigned:'Driver assigned',started:'Driver is traveling to your site',arrived:'Driver has arrived',equipment_verified:'Equipment verified',fueled:'Fuel delivery complete',proof_submitted:'Delivery proof is being finalized',completed:'Delivery completed'} as Record<string,string>)[job.status]||'Dispatch is being updated';}
 }
