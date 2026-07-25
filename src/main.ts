@@ -7,7 +7,6 @@ import { routes } from './app/app.routes';
 import { ThemeService } from './app/services/theme.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { customerAuthInterceptor } from './app/interceptors/customer-auth.interceptor';
-import { CustomerStateService } from './app/services/customer-state.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -17,7 +16,6 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(withInterceptors([customerAuthInterceptor])),
     provideAppInitializer(() => {
       inject(ThemeService).init();
-    }),
-    provideAppInitializer(() => inject(CustomerStateService).initialize())
+    })
   ]
 }).catch(error => console.error(error));

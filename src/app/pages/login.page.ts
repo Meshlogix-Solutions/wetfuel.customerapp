@@ -3,7 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { IonButton, IonCard, IonCardContent, IonCheckbox, IonContent, IonInput, IonItem } from '@ionic/angular/standalone';
 import { CustomerAuthService } from '../services/customer-auth.service';
-import { CustomerStateService } from '../services/customer-state.service';
 
 @Component({
   selector: 'app-login',
@@ -34,7 +33,6 @@ import { CustomerStateService } from '../services/customer-state.service';
 })
 export class LoginPage {
   private readonly auth = inject(CustomerAuthService);
-  private readonly state = inject(CustomerStateService);
   private readonly router = inject(Router);
 
   email = '';
@@ -47,7 +45,6 @@ export class LoginPage {
     this.error = '';
     try {
       await this.auth.login(this.email, this.password);
-      await this.state.refresh();
       await this.router.navigateByUrl('/home');
     } catch (err: unknown) {
       const failure = err as { error?: { message?: string }; message?: string };

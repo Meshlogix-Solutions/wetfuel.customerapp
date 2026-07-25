@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { IonCard, IonCardContent, IonSearchbar } from '@ionic/angular/standalone';
-import { CustomerStateService } from '../services/customer-state.service';
+import { CustomerApiService, CustomerJob } from '../services/customer-api.service';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 
 @Component({
@@ -24,11 +24,12 @@ import { MobileShellComponent } from '../shared/mobile-shell.component';
   </wf-customer-shell>`
 })
 export class DeliveriesPage {
-  readonly state=inject(CustomerStateService);
+  private readonly api=inject(CustomerApiService);
+  readonly jobs=signal<CustomerJob[]>([]);
   readonly search=signal('');
   readonly deliveries=computed(()=>{
     const term=this.search().trim().toLowerCase();
-    return this.state.jobs().filter(x=>x.status==='completed').filter(x=>!term||[x.jobNumber,x.siteName,x.equipmentName,x.driverName].some(v=>v?.toLowerCase().includes(term)));
+    return this.jobs().filter(x=>x.status==='completed').filter(x=>!term||[x.jobNumber,x.siteName,x.equipmentName,x.driverName].some(v=>v?.toLowerCase().includes(term)));
   });
-  ionViewWillEnter():void{void this.state.refresh().catch(()=>undefined);}
+  ionViewWillEnter():void{this.api.getJobs().subscribe({next:rows=>this.jobs.set(rows)});}
 }

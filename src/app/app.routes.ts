@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { customerAuthGuard } from './guards/customer-auth.guard';
+import { customerOrderWorkflowGuard } from './guards/customer-order-workflow.guard';
 export const routes: Routes = [
   { path:'',pathMatch:'full',redirectTo:'splash' },
   { path:'splash',loadComponent:()=>import('./pages/splash.page').then(m=>m.SplashPage) },
@@ -10,9 +11,9 @@ export const routes: Routes = [
     { path:'new-order',loadComponent:()=>import('./pages/new-order.page').then(m=>m.NewOrderPage) },
     { path:'select-location',loadComponent:()=>import('./pages/select-location.page').then(m=>m.SelectLocationPage) },
     { path:'select-equipment',loadComponent:()=>import('./pages/select-equipment.page').then(m=>m.SelectEquipmentPage) },
-    { path:'order-details',loadComponent:()=>import('./pages/order-details.page').then(m=>m.OrderDetailsPage) },
-    { path:'schedule-delivery',loadComponent:()=>import('./pages/schedule-delivery.page').then(m=>m.ScheduleDeliveryPage) },
-    { path:'order-review',loadComponent:()=>import('./pages/order-review.page').then(m=>m.OrderReviewPage) },
+    { path:'order-details',canActivate:[customerOrderWorkflowGuard],data:{orderStep:'details'},loadComponent:()=>import('./pages/order-details.page').then(m=>m.OrderDetailsPage) },
+    { path:'schedule-delivery',canActivate:[customerOrderWorkflowGuard],data:{orderStep:'schedule'},loadComponent:()=>import('./pages/schedule-delivery.page').then(m=>m.ScheduleDeliveryPage) },
+    { path:'order-review',canActivate:[customerOrderWorkflowGuard],data:{orderStep:'review'},loadComponent:()=>import('./pages/order-review.page').then(m=>m.OrderReviewPage) },
     { path:'order-confirmation/:id',loadComponent:()=>import('./pages/order-confirmation.page').then(m=>m.OrderConfirmationPage) },
     { path:'orders',loadComponent:()=>import('./pages/orders.page').then(m=>m.OrdersPage) },
     { path:'order-status/:id',loadComponent:()=>import('./pages/order-status.page').then(m=>m.OrderStatusPage) },
