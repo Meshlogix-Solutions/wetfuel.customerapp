@@ -1,14 +1,19 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { IonContent, IonIcon } from '@ionic/angular/standalone';
+import { IonContent, IonIcon, IonRefresher, IonRefresherContent } from '@ionic/angular/standalone';
 import { ThemeService } from '../services/theme.service';
+
+export interface RefreshRequest { complete: () => void; }
 
 @Component({
   selector: 'wf-customer-shell', standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, IonContent, IonIcon],
+  imports: [CommonModule, RouterLink, RouterLinkActive, IonContent, IonIcon, IonRefresher, IonRefresherContent],
   template: `
     <ion-content [fullscreen]="true">
+      <ion-refresher *ngIf="refreshable" slot="fixed" (ionRefresh)="requestPullRefresh($event)">
+        <ion-refresher-content pullingText="Pull to refresh" refreshingText="Refreshing..."></ion-refresher-content>
+      </ion-refresher>
       <div class="app-frame">
         <header class="topbar">
           <div class="topbar-left">
@@ -16,6 +21,9 @@ import { ThemeService } from '../services/theme.service';
             <div><div class="eyebrow" *ngIf="subtitle">{{ subtitle }}</div><h1>{{ title }}</h1></div>
           </div>
           <div class="topbar-actions">
+            <button *ngIf="refreshable" type="button" class="top-icon refresh-action" [class.refreshing]="refreshing()" [disabled]="refreshing()" (click)="requestHeaderRefresh()" aria-label="Refresh page">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.3"/><path d="M20 4v7h-7"/></svg>
+            </button>
             <button
               type="button"
               class="theme-toggle"
@@ -50,6 +58,7 @@ import { ThemeService } from '../services/theme.service';
     .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:max(14px,env(safe-area-inset-top)) 16px 12px;background:color-mix(in srgb, var(--wf-surface) 94%, transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--wf-border)}
     .topbar-left,.topbar-actions{display:flex;align-items:center;gap:10px}.topbar h1{margin:1px 0 0;font-size:22px;letter-spacing:-.035em;color:var(--wf-text)}.eyebrow{color:var(--wf-muted);font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
     .top-icon{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-primary);text-decoration:none;flex:0 0 auto}.top-icon ion-icon{font-size:21px}.notification-dot{position:absolute;right:7px;top:7px;width:8px;height:8px;background:var(--wf-accent);border:2px solid var(--wf-surface);border-radius:50%}
+    button.top-icon{padding:0;cursor:pointer}.refresh-action svg{width:20px;height:20px}.refresh-action.refreshing svg{animation:refresh-spin .8s linear infinite}@keyframes refresh-spin{to{transform:rotate(360deg)}}
     .theme-toggle{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-muted);cursor:pointer;flex:0 0 auto;padding:0}
     .theme-toggle__icon{width:21px;height:21px;transition:transform .2s ease, opacity .2s ease}
     .theme-toggle__icon--moon{position:absolute;opacity:0;transform:rotate(90deg) scale(0)}
@@ -57,6 +66,7 @@ import { ThemeService } from '../services/theme.service';
     :host-context(html.dark) .theme-toggle__icon--moon{opacity:1;transform:rotate(0) scale(1)}
     .bottom-nav{position:fixed;z-index:25;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 24px),680px);height:72px;border-radius:22px;background:color-mix(in srgb, var(--wf-surface) 96%, transparent);backdrop-filter:blur(18px);box-shadow:0 16px 42px rgba(0,0,0,.18);border:1px solid var(--wf-border);display:grid;grid-template-columns:repeat(4,1fr);padding:7px}
     .bottom-nav a{color:var(--wf-muted);text-decoration:none;display:grid;place-items:center;align-content:center;gap:4px;border-radius:15px;font-size:11px;font-weight:800}.bottom-nav ion-icon{font-size:21px}.bottom-nav a.active{color:var(--wf-primary);background:var(--wf-primary-soft)}
+    @media(max-width:430px){.refresh-action{display:none}}
   `]
 })
 export class MobileShellComponent {
@@ -65,5 +75,10 @@ export class MobileShellComponent {
   @Input() backRoute='';
   @Input() showNav=false;
   @Input() showSupport=true;
+  @Input() refreshable=false;
+  @Output() readonly refreshRequested=new EventEmitter<RefreshRequest>();
+  readonly refreshing=signal(false);
   readonly theme = inject(ThemeService);
+  requestHeaderRefresh():void{if(this.refreshing())return;this.refreshing.set(true);this.refreshRequested.emit({complete:()=>this.refreshing.set(false)});}
+  requestPullRefresh(event:CustomEvent):void{if(this.refreshing()){void (event.target as HTMLIonRefresherElement).complete();return;}this.refreshing.set(true);this.refreshRequested.emit({complete:()=>{this.refreshing.set(false);void (event.target as HTMLIonRefresherElement).complete();}});}
 }

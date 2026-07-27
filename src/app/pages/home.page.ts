@@ -4,10 +4,10 @@ import { RouterLink } from '@angular/router';
 import { IonButton, IonCard, IonCardContent, IonIcon } from '@ionic/angular/standalone';
 import { firstValueFrom } from 'rxjs';
 import { CustomerApiService, CustomerEquipment, CustomerJob, CustomerOrder, CustomerProfile } from '../services/customer-api.service';
-import { MobileShellComponent } from '../shared/mobile-shell.component';
+import { MobileShellComponent, RefreshRequest } from '../shared/mobile-shell.component';
 
 @Component({selector:'app-home',standalone:true,imports:[CommonModule,RouterLink,IonButton,IonCard,IonCardContent,IonIcon,MobileShellComponent],template:`
-<wf-customer-shell [title]="'Good morning, ' + (profile()?.contactFirstName || 'there')" [subtitle]="profile()?.companyName || 'Customer account'" [showNav]="true"><main class="screen-body stack">
+<wf-customer-shell [title]="'Good morning, ' + (profile()?.contactFirstName || 'there')" [subtitle]="profile()?.companyName || 'Customer account'" [showNav]="true" [refreshable]="true" (refreshRequested)="refreshHome($event)"><main class="screen-body stack">
 @if(activeJob();as job){<ion-card class="wf-card hero-card"><ion-card-content><div class="row-between"><div><span class="pill dark">{{statusLabel(job.status)}}</span><h2 style="margin:16px 0 5px">{{job.siteName}}</h2><p style="margin:0;opacity:.75">{{job.jobNumber}} · {{job.scheduledAt|date:'medium'}}</p></div><div class="icon-tile" style="background:rgba(255,255,255,.14);color:#fff"><ion-icon name="truck-outline"></ion-icon></div></div><div style="height:16px"></div><ion-button class="wf-button" color="tertiary" expand="block" [routerLink]="['/live-tracking',job.id]">View delivery status</ion-button></ion-card-content></ion-card>}
 <ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>Order fuel</ion-button>
 <section class="grid-3"><ion-card class="wf-card" routerLink="/orders"><ion-card-content class="metric"><span class="label">Active orders</span><strong>{{activeOrderCount()}}</strong><span class="caption">View status</span></ion-card-content></ion-card><ion-card class="wf-card" routerLink="/equipment"><ion-card-content class="metric"><span class="label">Equipment</span><strong>{{equipment().length}}</strong><span class="caption">{{attentionCount()}} need attention</span></ion-card-content></ion-card><ion-card class="wf-card" routerLink="/deliveries"><ion-card-content class="metric"><span class="label">Deliveries</span><strong>{{completedCount()}}</strong><span class="caption">Completed</span></ion-card-content></ion-card></section>
@@ -27,6 +27,7 @@ export class HomePage {
   readonly attentionEquipment=computed(()=>this.equipment().find(x=>x.status==='active'&&Number(x.estimatedLevelPercent??0)<=35)??null);
   statusLabel(value:string):string{return value.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase());}
   ionViewWillEnter():void{void this.load();}
+  async refreshHome(request:RefreshRequest):Promise<void>{try{await this.load();}finally{request.complete();}}
   private async load():Promise<void>{
     const [profile,equipment,orders,jobs]=await Promise.all([firstValueFrom(this.api.getCurrentCustomer()),firstValueFrom(this.api.getEquipment()),firstValueFrom(this.api.getOrders()),firstValueFrom(this.api.getJobs())]);
     this.profile.set(profile);this.equipment.set(equipment);this.orders.set(orders);this.jobs.set(jobs);
