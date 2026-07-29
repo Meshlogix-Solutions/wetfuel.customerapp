@@ -31,7 +31,6 @@ export const routes: Routes = [
     { path:'invoice-detail/:id',loadComponent:()=>import('./pages/invoice-detail.page').then(m=>m.InvoiceDetailPage) },
     { path:'notifications',loadComponent:()=>import('./pages/notifications.page').then(m=>m.NotificationsPage) },
     { path:'profile',loadComponent:()=>import('./pages/profile.page').then(m=>m.ProfilePage) },
-    { path:'support',loadComponent:()=>import('./pages/support.page').then(m=>m.SupportPage) },
   ]},
   { path:'**',redirectTo:'home' }
 ];

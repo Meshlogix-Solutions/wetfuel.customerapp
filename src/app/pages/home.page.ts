@@ -12,8 +12,6 @@ import { LoaderComponent } from '../shared/loader.component';
 @if(loading()&&!hasLoaded()){<section class="screen-body"><wf-loader mode="section" message="Loading your dashboard..." /></section>}
 @else{<main class="screen-body stack">
 @if(error()){<div class="load-error"><span>{{error()}}</span><button type="button" (click)="load()">Retry</button></div>}
-@if(activeJob();as job){<ion-card class="wf-card hero-card"><ion-card-content><div class="row-between"><div><span class="pill dark">{{statusLabel(job.status)}}</span><h2 style="margin:16px 0 5px">{{job.siteName}}</h2><p class="caption" style="margin:0">{{job.jobNumber}} · {{job.scheduledAt|date:'medium'}}</p></div><div class="icon-tile"><ion-icon name="truck-outline"></ion-icon></div></div><div style="height:16px"></div><ion-button class="wf-button" color="tertiary" expand="block" [routerLink]="['/live-tracking',job.id]">View delivery status</ion-button></ion-card-content></ion-card>}
-@else if(nextOrder();as order){<ion-card class="wf-card" [routerLink]="['/order-status',order.id]"><ion-card-content><div class="row-between"><div><span class="pill info">{{statusLabel(order.status)}}</span><h2 style="margin:12px 0 4px">{{order.requestedGallons}} gal · {{order.fuelType}}</h2><p class="caption" style="margin:0">{{order.siteName}} · {{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</p></div><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card>}
 <ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>Order fuel</ion-button>
 
 <section><div class="row-between"><h2 class="section-title">Billing</h2><a routerLink="/invoices" class="caption">View all</a></div><ion-card class="wf-card" [class.warning-card]="openInvoiceCount()>0" routerLink="/invoices"><ion-card-content class="row"><div class="icon-tile"><ion-icon name="card-outline"></ion-icon></div><div class="grow">@if(openInvoiceCount()>0){<strong>{{openInvoiceTotal()|currency}}</strong><p class="caption" style="margin:3px 0 0">{{openInvoiceCount()}} invoice{{openInvoiceCount()===1?'':'s'}} due</p>}@else{<strong>You're all caught up</strong><p class="caption" style="margin:3px 0 0">No open invoices</p>}</div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card></section>
@@ -26,7 +24,13 @@ import { LoaderComponent } from '../shared/loader.component';
 
 <section><h2 class="section-title">Account totals</h2><section class="grid-2"><ion-card class="wf-card"><ion-card-content class="metric"><span class="label">Lifetime deliveries</span><strong>{{profile()?.totalDeliveries??0}}</strong><span class="caption">Completed</span></ion-card-content></ion-card><ion-card class="wf-card"><ion-card-content class="metric"><span class="label">Lifetime fuel</span><strong>{{(profile()?.totalGallonsDelivered??0)|number:'1.0-0'}}</strong><span class="caption">Gallons delivered</span></ion-card-content></ion-card></section></section>
 
-<section><h2 class="section-title">Quick access</h2><div class="grid-2"><ion-card class="wf-card" routerLink="/locations"><ion-card-content class="row"><div class="icon-tile"><ion-icon name="location-outline"></ion-icon></div><strong>Locations</strong></ion-card-content></ion-card><ion-card class="wf-card" routerLink="/support"><ion-card-content class="row"><div class="icon-tile"><ion-icon name="help-circle-outline"></ion-icon></div><strong>Support</strong></ion-card-content></ion-card></div></section>
+<section><div class="row-between"><h2 class="section-title">Delivery status</h2><a routerLink="/orders" class="caption">View all</a></div>
+@if(activeJob();as job){<ion-card class="wf-card hero-card"><ion-card-content><div class="row-between"><div><span class="pill dark">{{statusLabel(job.status)}}</span><h2 style="margin:16px 0 5px">{{job.siteName}}</h2><p class="caption" style="margin:0">{{job.jobNumber}} · {{job.scheduledAt|date:'medium'}}</p></div><div class="icon-tile"><ion-icon name="truck-outline"></ion-icon></div></div><div style="height:16px"></div><ion-button class="wf-button" color="tertiary" expand="block" [routerLink]="['/live-tracking',job.id]">View delivery status</ion-button></ion-card-content></ion-card>}
+@else if(nextOrder();as order){<ion-card class="wf-card" [routerLink]="['/order-status',order.id]"><ion-card-content><div class="row-between"><div><span class="pill info">{{statusLabel(order.status)}}</span><h2 style="margin:12px 0 4px">{{order.requestedGallons}} gal · {{order.fuelType}}</h2><p class="caption" style="margin:0">{{order.siteName}} · {{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</p></div><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card>}
+@else{<ion-card class="wf-card soft-card text-center"><ion-card-content><div class="icon-tile" style="margin:0 auto 10px"><ion-icon name="checkmark-circle-outline"></ion-icon></div><strong>No active delivery</strong><p class="caption">Place a new order and we'll show live status here.</p></ion-card-content></ion-card>}
+</section>
+
+<section><h2 class="section-title">Quick access</h2><div class="grid-2"><ion-card class="wf-card" routerLink="/locations"><ion-card-content class="row"><div class="icon-tile"><ion-icon name="location-outline"></ion-icon></div><strong>Locations</strong></ion-card-content></ion-card></div></section>
 </main>}
 </wf-customer-shell>`})
 export class HomePage {
@@ -45,8 +49,8 @@ export class HomePage {
     const upcoming=this.orders().filter(x=>!['completed','cancelled'].includes(x.status));
     return upcoming.sort((a,b)=>new Date(a.requestedDate).getTime()-new Date(b.requestedDate).getTime())[0]??null;
   });
-  readonly openInvoiceCount=computed(()=>this.invoices().filter(x=>x.status==='sent').length);
-  readonly openInvoiceTotal=computed(()=>this.invoices().filter(x=>x.status==='sent').reduce((sum,x)=>sum+x.total,0));
+  readonly openInvoiceCount=computed(()=>this.invoices().filter(x=>x.status==='sent'||x.status==='payment_pending').length);
+  readonly openInvoiceTotal=computed(()=>this.invoices().filter(x=>x.status==='sent'||x.status==='payment_pending').reduce((sum,x)=>sum+x.total,0));
   readonly attentionEquipment=computed(()=>this.equipment().find(x=>x.status==='active'&&Number(x.estimatedLevelPercent??0)<=35)??null);
   readonly recentOrders=computed(()=>[...this.orders()].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()).slice(0,2));
   readonly recentDeliveries=computed(()=>this.jobs().filter(x=>x.status==='completed').sort((a,b)=>new Date(b.completedAt??0).getTime()-new Date(a.completedAt??0).getTime()).slice(0,2));

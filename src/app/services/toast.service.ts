@@ -21,4 +21,16 @@ export class ToastService {
     });
     await toast.present();
   }
+
+  async success(message: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 4000,
+      color: 'success',
+      position: 'bottom',
+      icon: 'checkmark-circle-outline',
+      buttons: [{ icon: 'close-outline', role: 'cancel' }],
+    });
+    await toast.present();
+  }
 }

@@ -40,13 +40,22 @@ export class LoginPage {
   loading = false;
 
   async login(): Promise<void> {
+    if (!this.email.trim() || !this.password) {
+      void this.toast.error('Enter your email address and password.');
+      return;
+    }
     this.loading = true;
     try {
       await this.auth.login(this.email, this.password);
       await this.router.navigateByUrl('/home');
     } catch (err: unknown) {
-      const failure = err as { error?: { message?: string }; message?: string };
-      void this.toast.error(failure.error?.message ?? failure.message ?? 'Invalid email or password.');
+      const failure = err as { status?: number; error?: { message?: string }; message?: string };
+      const message = failure.status === 0
+        ? 'The WetFuel service could not be reached. Check your internet connection and try again.'
+        : failure.status === 401
+          ? 'Invalid email or password.'
+          : failure.error?.message ?? failure.message ?? 'Sign in could not be completed.';
+      void this.toast.error(message);
     } finally {
       this.loading = false;
     }

@@ -39,7 +39,8 @@ export interface RefreshRequest { complete: () => void; }
                 <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
               </svg>
             </button>
-            <a *ngIf="showSupport" class="top-icon" routerLink="/support" aria-label="Support"><ion-icon name="help-circle-outline"></ion-icon></a>
+
+
             <a class="top-icon" routerLink="/notifications" aria-label="Notifications">
               <ion-icon name="notifications-outline"></ion-icon>
               <span *ngIf="notifications.unreadCount()" class="notification-badge">{{ badgeLabel }}</span>
@@ -79,7 +80,8 @@ export class MobileShellComponent {
   @Input() subtitle='';
   @Input() backRoute='';
   @Input() showNav=false;
-  @Input() showSupport=true;
+
+
   @Input() refreshable=false;
   @Output() readonly refreshRequested=new EventEmitter<RefreshRequest>();
   readonly refreshing=signal(false);

@@ -21,6 +21,7 @@ export interface OrderEquipment {
   name: string;
   fuel: string;
   current: number;
+  capacityGallons?: number;
 }
 
 interface CustomerOrderDraft {
@@ -81,6 +82,7 @@ export class CustomerStateService {
       name: equipment.name,
       fuel: equipment.fuelType,
       current: equipment.estimatedLevelPercent ?? 0,
+      capacityGallons: equipment.capacityGallons,
     });
     this.selectedLocation.set({
       id: equipment.siteId,

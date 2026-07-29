@@ -30,7 +30,7 @@ export class CustomerAuthService {
 
   async login(email: string, password: string): Promise<void> {
     const response = await firstValueFrom(
-      this.http.post<{ data: AuthTokenResponse }>(`${environment.apiUrl}/auth/customer/login`, { email, password }),
+      this.http.post<{ data: AuthTokenResponse }>(`${environment.apiUrl}/auth/customer/login`, { email: email.trim(), password }),
     );
     this.storeTokens(response.data);
   }
