@@ -4,6 +4,7 @@ import {
   CreateCustomerOrderRequest,
   CustomerApiService,
   CustomerEquipment,
+  CustomerOrderEstimate,
   CustomerOrder,
   CustomerSite,
 } from './customer-api.service';
@@ -37,7 +38,7 @@ const DRAFT_KEY_PREFIX = 'wetfuel_customer_order_draft';
 const DEFAULT_DRAFT: CustomerOrderDraft = {
   selectedLocation: null,
   selectedEquipment: null,
-  fuelType: 'Ultra-Low Sulfur Diesel',
+  fuelType: 'diesel',
   gallons: 500,
   deliveryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
   deliveryWindow: '8:00 AM–10:00 AM',
@@ -51,6 +52,7 @@ const DEFAULT_DRAFT: CustomerOrderDraft = {
 export class CustomerStateService {
   private readonly api = inject(CustomerApiService);
   private readonly initial = this.restoreDraft();
+  private estimateRequestId = 0;
 
   readonly selectedLocation = signal<OrderLocation | null>(this.initial.selectedLocation);
   readonly selectedEquipment = signal<OrderEquipment | null>(this.initial.selectedEquipment);
@@ -60,14 +62,19 @@ export class CustomerStateService {
   readonly deliveryWindow = signal(this.initial.deliveryWindow);
   readonly instructions = signal(this.initial.instructions);
   readonly fillPreference = signal(this.initial.fillPreference);
+  readonly estimate = signal<CustomerOrderEstimate | null>(null);
+  readonly estimateLoading = signal(false);
+  readonly estimateError = signal('');
 
   selectLocation(site: CustomerSite): void {
+    this.invalidateEstimate();
     this.selectedLocation.set({ id: site.id, name: site.name, address: this.address(site) });
     if (this.selectedEquipment()?.siteId !== site.id) this.selectedEquipment.set(null);
     this.persistDraft();
   }
 
   selectEquipment(equipment: CustomerEquipment): void {
+    this.invalidateEstimate();
     this.selectedEquipment.set({
       id: equipment.id,
       siteId: equipment.siteId,
@@ -85,6 +92,7 @@ export class CustomerStateService {
   }
 
   updateFuelDetails(fuelType: string, gallons: number, fillPreference: string): void {
+    this.invalidateEstimate();
     this.fuelType.set(fuelType);
     this.gallons.set(gallons);
     this.fillPreference.set(fillPreference);
@@ -104,6 +112,39 @@ export class CustomerStateService {
     if (!this.fuelType() || this.gallons() <= 0) return false;
     if (step === 'schedule') return true;
     return Boolean(this.deliveryDate() && this.deliveryWindow());
+  }
+
+  async refreshEstimate(): Promise<CustomerOrderEstimate | null> {
+    const location = this.selectedLocation();
+    const equipment = this.selectedEquipment();
+    const requestId = ++this.estimateRequestId;
+    if (!location || !equipment || !this.fuelType() || this.gallons() <= 0) {
+      this.estimate.set(null);
+      this.estimateError.set('');
+      this.estimateLoading.set(false);
+      return null;
+    }
+    this.estimateLoading.set(true);
+    this.estimateError.set('');
+    try {
+      const estimate = await firstValueFrom(this.api.estimateOrder({
+        siteId: location.id,
+        equipmentId: equipment.id,
+        fuelType: this.fuelType(),
+        requestedGallons: this.gallons(),
+        fillPreference: this.fillPreference(),
+      }));
+      if (requestId === this.estimateRequestId) this.estimate.set(estimate);
+      return estimate;
+    } catch (error) {
+      if (requestId !== this.estimateRequestId) return null;
+      const failure = error as { error?: { message?: string; title?: string }; message?: string };
+      this.estimate.set(null);
+      this.estimateError.set(failure.error?.message ?? failure.error?.title ?? failure.message ?? 'Pricing estimate is unavailable.');
+      throw error;
+    } finally {
+      if (requestId === this.estimateRequestId) this.estimateLoading.set(false);
+    }
   }
 
   async submitOrder(): Promise<CustomerOrder> {
@@ -135,6 +176,7 @@ export class CustomerStateService {
     this.deliveryWindow.set(DEFAULT_DRAFT.deliveryWindow);
     this.instructions.set(DEFAULT_DRAFT.instructions);
     this.fillPreference.set(DEFAULT_DRAFT.fillPreference);
+    this.invalidateEstimate();
   }
 
   address(site: CustomerSite): string {
@@ -151,6 +193,13 @@ export class CustomerStateService {
     }
     this.selectLocation(location);
     this.selectEquipment(item);
+  }
+
+  private invalidateEstimate(): void {
+    this.estimateRequestId++;
+    this.estimate.set(null);
+    this.estimateLoading.set(false);
+    this.estimateError.set('');
   }
 
   private persistDraft(): void {
@@ -170,7 +219,14 @@ export class CustomerStateService {
     const raw = localStorage.getItem(this.draftKey());
     if (!raw) return DEFAULT_DRAFT;
     try {
-      return { ...DEFAULT_DRAFT, ...JSON.parse(raw) };
+      const draft = { ...DEFAULT_DRAFT, ...JSON.parse(raw) } as CustomerOrderDraft;
+      const legacyFuelTypes: Record<string, string> = {
+        'Ultra-Low Sulfur Diesel': 'diesel',
+        'Off-road Diesel': 'diesel',
+        'Regular Unleaded': 'gasoline_regular',
+      };
+      draft.fuelType = legacyFuelTypes[draft.fuelType] ?? draft.fuelType;
+      return draft;
     } catch {
       localStorage.removeItem(this.draftKey());
       return DEFAULT_DRAFT;

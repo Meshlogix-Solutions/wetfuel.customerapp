@@ -10,7 +10,11 @@ export interface CustomerEquipment {id:string;customerId:string;customerName:str
 export interface EquipmentInput {siteId:string;name:string;type:string;manufacturer?:string;model?:string;serialNumber?:string;capacityGallons?:number;fuelType:string;estimatedLevelPercent?:number;latitude?:number;longitude?:number;photoUrl?:string;accessNotes?:string;installDate?:string;}
 export interface CustomerOrder {id:string;orderNumber:string;customerId:string;customerName:string;siteId:string;siteName:string;siteAddress:string;equipmentId:string;equipmentName:string;equipmentQrCode:string;fuelType:string;requestedGallons:number;fillPreference:string;requestedDate:string;deliveryWindow:string;instructions?:string;estimatedSubtotal:number;estimatedTaxesFees:number;estimatedTotal:number;status:string;driverJobId?:string;jobNumber?:string;driverName?:string;scheduledAt?:string;createdAt:string;updatedAt:string;}
 export interface CustomerJob {id:string;customerOrderId?:string;jobNumber:string;driverId?:string;driverName?:string;vehicleId?:string;vehicleName?:string;vehicleUnitNumber?:string;siteId?:string;siteName:string;siteAddress:string;scheduledAt:string;targetGallons:number;deliveredGallons?:number;startingTotalizer?:number;endingTotalizer?:number;deliveryNotes?:string;fuelType:string;distanceMiles?:number;status:string;equipmentId?:string;equipmentName?:string;equipmentType?:string;equipmentQrCode?:string;siteContactName?:string;siteContactPhone?:string;deliveryInstructions?:string;safetyNote?:string;latitude?:number;longitude?:number;startedAt?:string;arrivedAt?:string;completedAt?:string;}
-export interface CreateCustomerOrderRequest {siteId:string;equipmentId:string;fuelType:string;requestedGallons:number;fillPreference:string;requestedDate:string;deliveryWindow:string;instructions?:string;}
+export interface CustomerOrderEstimateRequest {siteId:string;equipmentId:string;fuelType:string;requestedGallons:number;fillPreference:string;}
+export interface CustomerOrderEstimate {pricePerGallon:number;estimatedSubtotal:number;estimatedTaxesFees:number;estimatedTotal:number;}
+export interface CreateCustomerOrderRequest extends CustomerOrderEstimateRequest {requestedDate:string;deliveryWindow:string;instructions?:string;}
+export interface CustomerInvoiceLineItem {id:string;description:string;fuelType:string;gallons:number;pricePerGallon:number;subtotal:number;tax:number;total:number;driverJobId:string;jobNumber:string;}
+export interface CustomerInvoice {id:string;invoiceNumber:string;customerId:string;customerName:string;status:string;isOverdue:boolean;issueDate?:string;dueDate?:string;paidDate?:string;subtotal:number;taxTotal:number;total:number;notes?:string;lineItems:CustomerInvoiceLineItem[];createdAt:string;updatedAt:string;}
 @Injectable({providedIn:'root'}) export class CustomerApiService {
   private readonly http=inject(HttpClient);
   getCurrentCustomer():Observable<CustomerProfile>{return this.http.get<ApiResponse<CustomerProfile>>(`${environment.apiUrl}/customer/me`).pipe(map(r=>r.data));}
@@ -24,6 +28,10 @@ export interface CreateCustomerOrderRequest {siteId:string;equipmentId:string;fu
   getJobs():Observable<CustomerJob[]>{return this.http.get<ApiResponse<CustomerJob[]>>(`${environment.apiUrl}/job/app`).pipe(map(r=>r.data));}
   getJob(id:string):Observable<CustomerJob>{return this.http.get<ApiResponse<CustomerJob>>(`${environment.apiUrl}/job/app/${id}`).pipe(map(r=>r.data));}
   getOrder(id:string):Observable<CustomerOrder>{return this.http.get<ApiResponse<CustomerOrder>>(`${environment.apiUrl}/customer-order/app/${id}`).pipe(map(r=>r.data));}
+  estimateOrder(request:CustomerOrderEstimateRequest):Observable<CustomerOrderEstimate>{return this.http.post<ApiResponse<CustomerOrderEstimate>>(`${environment.apiUrl}/customer-order/app/estimate`,request).pipe(map(r=>r.data));}
   createOrder(request:CreateCustomerOrderRequest):Observable<CustomerOrder>{return this.http.post<ApiResponse<CustomerOrder>>(`${environment.apiUrl}/customer-order/app`,request).pipe(map(r=>r.data));}
   cancelOrder(id:string):Observable<boolean>{return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/customer-order/app/${id}/cancel`,{}).pipe(map(r=>r.data));}
+  getInvoices():Observable<CustomerInvoice[]>{return this.http.get<ApiResponse<CustomerInvoice[]>>(`${environment.apiUrl}/invoice/app`).pipe(map(r=>r.data));}
+  getInvoice(id:string):Observable<CustomerInvoice>{return this.http.get<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}`).pipe(map(r=>r.data));}
+  payInvoice(id:string):Observable<CustomerInvoice>{return this.http.post<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}/pay`,{}).pipe(map(r=>r.data));}
 }

@@ -1,10 +1,48 @@
-import { Component } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { IonButton, IonCard, IonCardContent, IonIcon } from '@ionic/angular/standalone';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
+import { LoaderComponent } from '../shared/loader.component';
+import { CustomerApiService, CustomerInvoice } from '../services/customer-api.service';
+import { ConfirmService } from '../services/confirm.service';
+import { ToastService } from '../services/toast.service';
 
-@Component({ selector:'app-invoice-detail', standalone:true, imports:[CommonModule, IonButton, IonCard, IonCardContent, IonIcon, MobileShellComponent], template:`
-<wf-customer-shell title="Invoice INV-10482" subtitle="Open · Due July 24" backRoute="/invoices"><main class="screen-body stack"><ion-card class="wf-card hero-card"><ion-card-content><span class="pill dark">Amount due</span><h2 style="font-size:38px;margin:14px 0 4px">$1,610.70</h2><p style="margin:0;opacity:.72">Payment terms: Net 30</p></ion-card-content></ion-card><ion-card class="wf-card"><ion-card-content><div class="detail-row"><span>Fuel delivery</span><strong>420 gal × $3.54</strong></div><div class="detail-row"><span>Fuel subtotal</span><strong>$1,486.80</strong></div><div class="detail-row"><span>Federal & state taxes</span><strong>$102.90</strong></div><div class="detail-row"><span>Delivery/service fee</span><strong>$21.00</strong></div><div class="detail-row"><span>Total</span><strong>$1,610.70</strong></div></ion-card-content></ion-card><ion-card class="wf-card"><ion-card-content><div class="detail-row"><span>Order</span><strong>WF-77842</strong></div><div class="detail-row"><span>Delivery date</span><strong>June 24, 2026</strong></div><div class="detail-row"><span>Location</span><strong>North Yard</strong></div><div class="detail-row"><span>QuickBooks status</span><strong>Synced</strong></div></ion-card-content></ion-card><ion-button class="wf-button" expand="block"><ion-icon name="download-outline" slot="start"></ion-icon>Download PDF invoice</ion-button><ion-button class="wf-button wf-secondary" expand="block"><ion-icon name="mail-outline" slot="start"></ion-icon>Email invoice</ion-button><p class="caption text-center">Online payment processing is not included in this phase. Contact billing for payment instructions.</p></main></wf-customer-shell>` })
-export class InvoiceDetailPage {  }
+@Component({ selector:'app-invoice-detail', standalone:true, imports:[CommonModule, IonButton, IonCard, IonCardContent, IonIcon, MobileShellComponent, LoaderComponent], template:`
+<wf-customer-shell [title]="invoice()?.invoiceNumber||'Invoice'" [subtitle]="statusSubtitle()" backRoute="/invoices" [showNav]="true"><main class="screen-body stack">
+@if(invoice();as x){
+  <ion-card class="wf-card hero-card"><ion-card-content><span class="pill dark">{{x.status==='paid'?'Paid':(x.isOverdue?'Overdue':'Amount due')}}</span><h2 style="font-size:38px;margin:14px 0 4px">{{x.total|currency}}</h2><p class="caption" style="margin:0">Issued {{x.issueDate|date:'mediumDate'}} · Due {{x.dueDate|date:'mediumDate'}}</p></ion-card-content></ion-card>
+  <ion-card class="wf-card"><ion-card-content>@for(li of x.lineItems;track li.id){<div class="detail-row"><span>{{li.jobNumber}} · {{li.fuelType}}</span><strong>{{li.gallons}} gal × {{li.pricePerGallon|currency}}</strong></div>}<div class="divider"></div><div class="detail-row"><span>Fuel subtotal</span><strong>{{x.subtotal|currency}}</strong></div><div class="detail-row"><span>Taxes</span><strong>{{x.taxTotal|currency}}</strong></div><div class="detail-row"><span>Total</span><strong>{{x.total|currency}}</strong></div></ion-card-content></ion-card>
+  <ion-card class="wf-card"><ion-card-content><div class="detail-row"><span>Customer</span><strong>{{x.customerName}}</strong></div><div class="detail-row"><span>Status</span><strong>{{x.status==='paid'?('Paid '+(x.paidDate|date:'mediumDate')):'Awaiting payment'}}</strong></div></ion-card-content></ion-card>
+  @if(x.status==='sent'){<ion-button class="wf-button" expand="block" [disabled]="paying" (click)="pay(x)"><ion-icon name="card-outline" slot="start"></ion-icon>{{paying?'Processing...':'Pay '+(x.total|currency)}}</ion-button>}
+  <ion-button class="wf-button wf-secondary" expand="block"><ion-icon name="download-outline" slot="start"></ion-icon>Download PDF invoice</ion-button>
+  <ion-button class="wf-button wf-secondary" expand="block"><ion-icon name="mail-outline" slot="start"></ion-icon>Email invoice</ion-button>
+  <p class="caption text-center">Payment recorded here is a manual confirmation. Contact billing if you paid outside the app and this doesn't update.</p>
+}@else if(error()){<div class="load-error"><span>{{error()}}</span><button type="button" (click)="load()">Retry</button></div>}@else{<section><wf-loader mode="section" message="Loading invoice..." /></section>}
+</main></wf-customer-shell>` })
+export class InvoiceDetailPage {
+  private readonly route=inject(ActivatedRoute);
+  private readonly api=inject(CustomerApiService);
+  private readonly confirm=inject(ConfirmService);
+  private readonly toast=inject(ToastService);
+  readonly invoice=signal<CustomerInvoice|null>(null);
+  readonly error=signal('');
+  paying=false;
+  ngOnInit():void{this.load();}
+  load():void{
+    const id=this.route.snapshot.paramMap.get('id');if(!id)return;
+    this.error.set('');
+    this.api.getInvoice(id).subscribe({next:x=>this.invoice.set(x),error:()=>this.error.set('This invoice could not be loaded. Check your connection and try again.')});
+  }
+  statusSubtitle():string{const x=this.invoice();if(!x)return 'Loading...';return x.status==='paid'?'Paid':(x.isOverdue?'Overdue':'Open · Due '+new Date(x.dueDate||'').toLocaleDateString());}
+  async pay(x:CustomerInvoice):Promise<void>{
+    if(this.paying)return;
+    const ok=await this.confirm.danger(`Pay ${new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(x.total)}?`,`Confirm invoice ${x.invoiceNumber} has been paid.`,'Confirm payment');
+    if(!ok)return;
+    this.paying=true;
+    this.api.payInvoice(x.id).subscribe({
+      next:updated=>{this.invoice.set(updated);this.paying=false;},
+      error:()=>{this.paying=false;void this.toast.error('This payment could not be recorded. Try again.');},
+    });
+  }
+}

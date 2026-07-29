@@ -1,10 +1,11 @@
 import { Routes } from '@angular/router';
 import { customerAuthGuard } from './guards/customer-auth.guard';
 import { customerOrderWorkflowGuard } from './guards/customer-order-workflow.guard';
+import { redirectIfAuthenticatedGuard } from './guards/redirect-if-authenticated.guard';
 export const routes: Routes = [
   { path:'',pathMatch:'full',redirectTo:'splash' },
-  { path:'splash',loadComponent:()=>import('./pages/splash.page').then(m=>m.SplashPage) },
-  { path:'login',loadComponent:()=>import('./pages/login.page').then(m=>m.LoginPage) },
+  { path:'splash',canActivate:[redirectIfAuthenticatedGuard],loadComponent:()=>import('./pages/splash.page').then(m=>m.SplashPage) },
+  { path:'login',canActivate:[redirectIfAuthenticatedGuard],loadComponent:()=>import('./pages/login.page').then(m=>m.LoginPage) },
   { path:'verification',loadComponent:()=>import('./pages/verification.page').then(m=>m.VerificationPage) },
   { path:'',canActivateChild:[customerAuthGuard],children:[
     { path:'home',loadComponent:()=>import('./pages/home.page').then(m=>m.HomePage) },
@@ -27,7 +28,7 @@ export const routes: Routes = [
     { path:'deliveries',loadComponent:()=>import('./pages/deliveries.page').then(m=>m.DeliveriesPage) },
     { path:'delivery-detail/:id',loadComponent:()=>import('./pages/delivery-detail.page').then(m=>m.DeliveryDetailPage) },
     { path:'invoices',loadComponent:()=>import('./pages/invoices.page').then(m=>m.InvoicesPage) },
-    { path:'invoice-detail',loadComponent:()=>import('./pages/invoice-detail.page').then(m=>m.InvoiceDetailPage) },
+    { path:'invoice-detail/:id',loadComponent:()=>import('./pages/invoice-detail.page').then(m=>m.InvoiceDetailPage) },
     { path:'notifications',loadComponent:()=>import('./pages/notifications.page').then(m=>m.NotificationsPage) },
     { path:'profile',loadComponent:()=>import('./pages/profile.page').then(m=>m.ProfilePage) },
     { path:'support',loadComponent:()=>import('./pages/support.page').then(m=>m.SupportPage) },

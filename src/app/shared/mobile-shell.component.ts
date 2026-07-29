@@ -3,6 +3,7 @@ import { Component, EventEmitter, Input, Output, inject, signal } from '@angular
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { IonContent, IonIcon, IonRefresher, IonRefresherContent } from '@ionic/angular/standalone';
 import { ThemeService } from '../services/theme.service';
+import { CustomerNotificationService } from '../services/customer-notification.service';
 
 export interface RefreshRequest { complete: () => void; }
 
@@ -14,7 +15,7 @@ export interface RefreshRequest { complete: () => void; }
       <ion-refresher *ngIf="refreshable" slot="fixed" (ionRefresh)="requestPullRefresh($event)">
         <ion-refresher-content pullingText="Pull to refresh" refreshingText="Refreshing..."></ion-refresher-content>
       </ion-refresher>
-      <div class="app-frame">
+      <div class="app-frame" [style.--wf-screen-bottom-padding]="showNav ? '110px' : '28px'">
         <header class="topbar">
           <div class="topbar-left">
             <a *ngIf="backRoute" class="top-icon" [routerLink]="backRoute" aria-label="Back"><ion-icon name="arrow-back-outline"></ion-icon></a>
@@ -39,7 +40,10 @@ export interface RefreshRequest { complete: () => void; }
               </svg>
             </button>
             <a *ngIf="showSupport" class="top-icon" routerLink="/support" aria-label="Support"><ion-icon name="help-circle-outline"></ion-icon></a>
-            <a class="top-icon" routerLink="/notifications" aria-label="Notifications"><ion-icon name="notifications-outline"></ion-icon><span class="notification-dot"></span></a>
+            <a class="top-icon" routerLink="/notifications" aria-label="Notifications">
+              <ion-icon name="notifications-outline"></ion-icon>
+              <span *ngIf="notifications.unreadCount()" class="notification-badge">{{ badgeLabel }}</span>
+            </a>
           </div>
         </header>
         <ng-content></ng-content>
@@ -57,7 +61,8 @@ export interface RefreshRequest { complete: () => void; }
     .app-frame{min-height:100%;background:var(--wf-background)}
     .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:max(14px,env(safe-area-inset-top)) 16px 12px;background:color-mix(in srgb, var(--wf-surface) 94%, transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--wf-border)}
     .topbar-left,.topbar-actions{display:flex;align-items:center;gap:10px}.topbar h1{margin:1px 0 0;font-size:22px;letter-spacing:-.035em;color:var(--wf-text)}.eyebrow{color:var(--wf-muted);font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
-    .top-icon{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-primary);text-decoration:none;flex:0 0 auto}.top-icon ion-icon{font-size:21px}.notification-dot{position:absolute;right:7px;top:7px;width:8px;height:8px;background:var(--wf-accent);border:2px solid var(--wf-surface);border-radius:50%}
+    .top-icon{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-primary);text-decoration:none;flex:0 0 auto}.top-icon ion-icon{font-size:21px}
+    .notification-badge{position:absolute;right:-5px;top:-6px;min-width:19px;height:19px;padding:0 5px;display:grid;place-items:center;border-radius:10px;background:var(--wf-danger,#d92d20);color:#fff;border:2px solid var(--wf-surface);font-size:10px;font-weight:900;line-height:1}
     button.top-icon{padding:0;cursor:pointer}.refresh-action svg{width:20px;height:20px}.refresh-action.refreshing svg{animation:refresh-spin .8s linear infinite}@keyframes refresh-spin{to{transform:rotate(360deg)}}
     .theme-toggle{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-muted);cursor:pointer;flex:0 0 auto;padding:0}
     .theme-toggle__icon{width:21px;height:21px;transition:transform .2s ease, opacity .2s ease}
@@ -79,6 +84,8 @@ export class MobileShellComponent {
   @Output() readonly refreshRequested=new EventEmitter<RefreshRequest>();
   readonly refreshing=signal(false);
   readonly theme = inject(ThemeService);
+  readonly notifications = inject(CustomerNotificationService);
+  get badgeLabel(): string { return this.notifications.unreadCount() > 99 ? '99+' : String(this.notifications.unreadCount()); }
   requestHeaderRefresh():void{if(this.refreshing())return;this.refreshing.set(true);this.refreshRequested.emit({complete:()=>this.refreshing.set(false)});}
   requestPullRefresh(event:CustomEvent):void{if(this.refreshing()){void (event.target as HTMLIonRefresherElement).complete();return;}this.refreshing.set(true);this.refreshRequested.emit({complete:()=>{this.refreshing.set(false);void (event.target as HTMLIonRefresherElement).complete();}});}
 }
