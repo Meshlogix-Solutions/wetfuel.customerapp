@@ -1,7 +1,41 @@
+@import "sweetalert2/dist/sweetalert2.min.css";
+
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; background: var(--wf-background); color: var(--wf-text); }
 body { font-family: var(--ion-font-family); }
 a { text-decoration: none; }
+
+.swal2-container.swal2-backdrop-show { background: rgba(0, 0, 0, 0.52); }
+.wf-swal-popup {
+  width: min(28rem, calc(100vw - 2rem)) !important;
+  border: 1px solid var(--wf-border) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28) !important;
+  font-family: var(--ion-font-family) !important;
+}
+.wf-swal-title { padding-top: 0.25rem !important; color: var(--wf-text) !important; font-size: 1.25rem !important; }
+.wf-swal-text { color: var(--wf-muted) !important; font-size: 0.9rem !important; line-height: 1.5 !important; }
+.wf-swal-actions { width: 100% !important; gap: 0.625rem !important; padding: 0 1.25rem 0.5rem !important; }
+.wf-swal-btn {
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font: 800 0.875rem var(--ion-font-family);
+  cursor: pointer;
+}
+.wf-swal-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--wf-primary-soft); }
+.wf-swal-btn--primary, .wf-swal-btn--danger { background: var(--wf-primary); color: #fff; }
+.wf-swal-btn--cancel { border-color: var(--wf-border); background: var(--wf-surface); color: var(--wf-text); }
+.wf-swal-btn--cancel:hover { background: var(--wf-accent-surface); }
+.wf-swal-popup .swal2-icon.swal2-question,
+.wf-swal-popup .swal2-icon.swal2-info { border-color: var(--wf-primary) !important; color: var(--wf-primary) !important; }
+.wf-swal-popup .swal2-icon.swal2-warning { border-color: var(--wf-warning) !important; color: var(--wf-warning) !important; }
+.wf-swal-popup .swal2-icon.swal2-error { border-color: var(--wf-danger) !important; color: var(--wf-danger) !important; }
+.wf-swal-popup .swal2-icon.swal2-error [class^='swal2-x-mark-line'] { background-color: var(--wf-danger) !important; }
+.wf-swal-popup .swal2-icon.swal2-success { border-color: var(--wf-success) !important; color: var(--wf-success) !important; }
+.wf-swal-popup .swal2-icon.swal2-success [class^='swal2-success-line'] { background-color: var(--wf-success) !important; }
+.wf-swal-popup .swal2-icon.swal2-success .swal2-success-ring { border-color: color-mix(in srgb, var(--wf-success) 30%, transparent) !important; }
 
 .screen-body { padding: 18px 18px var(--wf-screen-bottom-padding, 28px); max-width: 720px; margin: 0 auto; }
 .stack { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; }
@@ -62,10 +96,14 @@ ion-item ion-icon[slot="start"] { color: var(--wf-primary); }
 .progress-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--wf-primary), var(--wf-primary-tint)); }
 .progress-track.orange > span { background: linear-gradient(90deg, var(--wf-primary), var(--wf-primary-tint)); }
 
-ion-button.wf-button { --border-radius: 15px; min-height: 50px; font-weight: 800; text-transform: none; letter-spacing: 0; }
-ion-button.wf-button::part(native) { min-height: 50px; }
+ion-button.wf-button { --border-radius: 16px; --box-shadow: 0 8px 16px -4px rgba(227, 18, 30, 0.45); min-height: 52px; font-weight: 800; text-transform: none; letter-spacing: 0; transition: transform .15s ease; }
+ion-button.wf-button::part(native) { min-height: 52px; }
+ion-button.wf-button.ion-activated { transform: scale(0.985); }
 ion-button.wf-secondary { --background: var(--wf-primary-soft); --color: var(--wf-primary); --box-shadow: none; }
 .button-stack { display: grid; gap: 10px; }
+ion-checkbox { align-items: flex-start; --border-radius: 6px; margin: 4px 0 16px; }
+ion-checkbox::part(label) { white-space: normal; font-size: 13px; line-height: 1.4; color: var(--wf-text); }
+ion-checkbox::part(container) { margin-top: 2px; }
 .form-card ion-item { --background: transparent; --padding-start: 0; --inner-padding-end: 0; --border-color: var(--wf-border); }
 .form-card ion-input, .form-card ion-select, .form-card ion-textarea { --padding-start: 0; }
 .selection-card { cursor: pointer; }

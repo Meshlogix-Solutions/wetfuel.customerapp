@@ -6,12 +6,24 @@ import {IonButton,IonCard,IonCardContent,IonIcon,IonLabel,IonSegment,IonSegmentB
 import {CustomerApiService,CustomerOrder} from '../services/customer-api.service';
 import {MobileShellComponent} from '../shared/mobile-shell.component';
 import {LoaderComponent} from '../shared/loader.component';
+
 @Component({selector:'app-orders',standalone:true,imports:[CommonModule,FormsModule,RouterLink,IonButton,IonCard,IonCardContent,IonIcon,IonLabel,IonSegment,IonSegmentButton,MobileShellComponent,LoaderComponent],template:`<wf-customer-shell title="My orders" subtitle="Fuel deliveries" [showNav]="true">
 @if(loading()&&!hasLoaded()){<section class="screen-body"><wf-loader mode="section" message="Loading orders..." /></section>}
-@else{<main class="screen-body stack">
+@else{<ng-container><main class="screen-body stack">
 @if(error()){<div class="load-error"><span>{{error()}}</span><button type="button" (click)="load()">Retry</button></div>}
-<ion-segment [ngModel]="filter()" (ngModelChange)="filter.set($event)"><ion-segment-button value="active"><ion-label>Active</ion-label></ion-segment-button><ion-segment-button value="past"><ion-label>Past</ion-label></ion-segment-button><ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button></ion-segment><ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>New fuel order</ion-button>@for(order of visible();track order.id){<ion-card class="wf-card" [routerLink]="['/order-status',order.id]"><ion-card-content><div class="row-between"><span class="pill" [class.info]="order.status==='in_progress'" [class.success]="order.status==='completed'" [class.warning]="order.status==='scheduled'">{{order.status.replace('_',' ')}}</span><strong>{{order.orderNumber}}</strong></div><h3>{{order.siteName}}</h3><p class="caption">{{order.equipmentName}}</p><div class="detail-row"><span>{{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</span><strong>{{order.requestedGallons}} gal</strong></div><div class="row-between"><span class="caption">{{order.fuelType}}</span><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card>}@empty{<ion-card class="wf-card soft-card text-center"><ion-card-content><div class="icon-tile" style="margin:0 auto 10px"><ion-icon name="receipt-outline"></ion-icon></div><strong>No orders in this view</strong><p class="caption">Try a different filter or place a new fuel order.</p></ion-card-content></ion-card>}</main>}
-</wf-customer-shell>`})
+<ion-segment [scrollable]="true" [ngModel]="filter()" (ngModelChange)="filter.set($event)"><ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button><ion-segment-button value="active"><ion-label>Active</ion-label></ion-segment-button><ion-segment-button value="transit"><ion-label>In Transit</ion-label></ion-segment-button><ion-segment-button value="delivered"><ion-label>Delivered</ion-label></ion-segment-button><ion-segment-button value="past"><ion-label>Past Orders</ion-label></ion-segment-button></ion-segment>
+@for(order of visible();track order.id){<ion-card class="wf-card" [routerLink]="['/order-status',order.id]"><ion-card-content><div class="row-between"><span class="pill" [class]="order.statusTone">{{order.statusLabel}}</span><strong>{{order.orderNumber}}</strong></div><h3>{{order.siteName}}</h3><p class="caption">{{order.equipmentName}}</p><div class="detail-row"><span>{{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</span><strong>{{order.requestedGallons}} gal</strong></div><div class="row-between"><span class="caption">{{order.fuelType}}</span><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card>}
+@empty{<div class="empty-state"><div class="empty-icon"><ion-icon name="receipt-outline"></ion-icon></div><strong>{{emptyStateCopy().title}}</strong><p class="caption">{{emptyStateCopy().message}}</p><ion-button size="small" class="empty-cta" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>New fuel order</ion-button></div>}
+</main>
+</ng-container>}
+</wf-customer-shell>`,
+styles:[`
+  .empty-state{min-height:36vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:20px}
+  .empty-icon{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:var(--wf-primary-soft);color:var(--wf-primary);font-size:28px;margin-bottom:6px}
+  .empty-state strong{font-size:16px}
+  .empty-state .caption{max-width:260px}
+  .empty-cta{margin-top:12px;--border-radius:12px;font-weight:800;text-transform:none}
+`]})
 export class OrdersPage{
   private readonly api=inject(CustomerApiService);
   readonly orders=signal<CustomerOrder[]>([]);
@@ -19,7 +31,25 @@ export class OrdersPage{
   readonly loading=signal(true);
   readonly hasLoaded=signal(false);
   readonly error=signal('');
-  readonly visible=computed(()=>{const rows=this.orders();if(this.filter()==='active')return rows.filter(x=>!['completed','cancelled'].includes(x.status));if(this.filter()==='past')return rows.filter(x=>['completed','cancelled'].includes(x.status));return rows;});
+  readonly visible=computed(()=>{
+    const rows=this.orders();
+    switch(this.filter()){
+      case 'active':return rows.filter(x=>x.statusGroup==='active');
+      case 'transit':return rows.filter(x=>x.statusGroup==='in_transit');
+      case 'delivered':return rows.filter(x=>x.statusGroup==='delivered');
+      case 'past':return rows.filter(x=>x.statusGroup==='delivered'||x.statusGroup==='cancelled');
+      default:return rows;
+    }
+  });
+  readonly emptyStateCopy=computed(():{title:string;message:string}=>{
+    switch(this.filter()){
+      case 'active':return {title:'No active orders',message:'Orders you place will show up here while they\'re being prepared or delivered.'};
+      case 'transit':return {title:'Nothing in transit',message:'Orders on their way to you will appear here.'};
+      case 'delivered':return {title:'No deliveries yet',message:'Delivered orders will show up here.'};
+      case 'past':return {title:'No past orders',message:'Your delivered and cancelled orders will appear here.'};
+      default:return {title:'No orders yet',message:'Place your first fuel order to see it here.'};
+    }
+  });
   ionViewWillEnter():void{this.load();}
   load():void{
     this.loading.set(true);this.error.set('');

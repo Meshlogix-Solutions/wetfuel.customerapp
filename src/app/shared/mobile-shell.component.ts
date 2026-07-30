@@ -15,7 +15,7 @@ export interface RefreshRequest { complete: () => void; }
       <ion-refresher *ngIf="refreshable" slot="fixed" (ionRefresh)="requestPullRefresh($event)">
         <ion-refresher-content pullingText="Pull to refresh" refreshingText="Refreshing..."></ion-refresher-content>
       </ion-refresher>
-      <div class="app-frame" [style.--wf-screen-bottom-padding]="showNav ? '110px' : '28px'">
+      <div class="app-frame" [style.--wf-screen-bottom-padding]="bottomPadding">
         <header class="topbar">
           <div class="topbar-left">
             <a *ngIf="backRoute" class="top-icon" [routerLink]="backRoute" aria-label="Back"><ion-icon name="arrow-back-outline"></ion-icon></a>
@@ -48,11 +48,14 @@ export interface RefreshRequest { complete: () => void; }
           </div>
         </header>
         <ng-content></ng-content>
+        <div class="fixed-footer" *ngIf="fixedFooter" [class.with-nav]="showNav"><ng-content select="[fixedFooterContent]"></ng-content></div>
         <nav class="bottom-nav" *ngIf="showNav">
-          <a routerLink="/home" routerLinkActive="active"><ion-icon name="home-outline"></ion-icon><span>Home</span></a>
+          <a routerLink="/home" routerLinkActive="active"><ion-icon name="home-outline"></ion-icon><span>Dashboard</span></a>
           <a routerLink="/orders" routerLinkActive="active"><ion-icon name="receipt-outline"></ion-icon><span>Orders</span></a>
+          <a routerLink="/locations" routerLinkActive="active"><ion-icon name="business-outline"></ion-icon><span>Sites</span></a>
           <a routerLink="/equipment" routerLinkActive="active"><ion-icon name="cube-outline"></ion-icon><span>Equipment</span></a>
-          <a routerLink="/profile" routerLinkActive="active"><ion-icon name="person-outline"></ion-icon><span>Account</span></a>
+          <a routerLink="/invoices" routerLinkActive="active"><ion-icon name="wallet-outline"></ion-icon><span>Payments</span></a>
+          <a routerLink="/profile" routerLinkActive="active"><ion-icon name="settings-outline"></ion-icon><span>Settings</span></a>
         </nav>
       </div>
     </ion-content>
@@ -70,9 +73,15 @@ export interface RefreshRequest { complete: () => void; }
     .theme-toggle__icon--moon{position:absolute;opacity:0;transform:rotate(90deg) scale(0)}
     :host-context(html.dark) .theme-toggle__icon--sun{opacity:0;transform:rotate(-90deg) scale(0)}
     :host-context(html.dark) .theme-toggle__icon--moon{opacity:1;transform:rotate(0) scale(1)}
-    .bottom-nav{position:fixed;z-index:25;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 24px),680px);height:72px;border-radius:22px;background:color-mix(in srgb, var(--wf-surface) 96%, transparent);backdrop-filter:blur(18px);box-shadow:0 16px 42px rgba(0,0,0,.18);border:1px solid var(--wf-border);display:grid;grid-template-columns:repeat(4,1fr);padding:7px}
-    .bottom-nav a{color:var(--wf-muted);text-decoration:none;display:grid;place-items:center;align-content:center;gap:4px;border-radius:15px;font-size:11px;font-weight:800}.bottom-nav ion-icon{font-size:21px}.bottom-nav a.active{color:var(--wf-primary);background:var(--wf-primary-soft)}
+    .fixed-footer{position:fixed;z-index:26;left:50%;transform:translateX(-50%);width:min(calc(100% - 32px),720px);bottom:max(10px,env(safe-area-inset-bottom))}
+    .fixed-footer.with-nav{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 96px)}
+    .bottom-nav{position:fixed;z-index:25;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 16px),760px);height:72px;border-radius:22px;background:color-mix(in srgb, var(--wf-surface) 96%, transparent);backdrop-filter:blur(18px);box-shadow:0 16px 42px rgba(0,0,0,.18);border:1px solid var(--wf-border);display:grid;grid-template-columns:repeat(6,1fr);padding:6px 2px}
+    .bottom-nav a{color:var(--wf-muted);text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:100%;box-sizing:border-box;border-radius:15px;font-size:9.5px;font-weight:800;line-height:1;padding:0 2px;text-align:center}
+    .bottom-nav a span{line-height:1;white-space:nowrap}
+    .bottom-nav ion-icon{width:20px;height:20px;font-size:20px;flex:0 0 auto;display:block}
+    .bottom-nav a.active{color:var(--wf-primary);background:var(--wf-primary-soft)}
     @media(max-width:430px){.refresh-action{display:none}}
+    @media(max-width:380px){.bottom-nav a span{display:none}.bottom-nav ion-icon{width:22px;height:22px;font-size:22px}}
   `]
 })
 export class MobileShellComponent {
@@ -80,9 +89,14 @@ export class MobileShellComponent {
   @Input() subtitle='';
   @Input() backRoute='';
   @Input() showNav=false;
+  @Input() fixedFooter=false;
 
 
   @Input() refreshable=false;
+  get bottomPadding():string{
+    if(this.showNav)return this.fixedFooter?'196px':'110px';
+    return this.fixedFooter?'100px':'28px';
+  }
   @Output() readonly refreshRequested=new EventEmitter<RefreshRequest>();
   readonly refreshing=signal(false);
   readonly theme = inject(ThemeService);

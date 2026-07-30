@@ -1,14 +1,14 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { IonButton, IonCard, IonCardContent, IonContent, IonInput, IonItem } from '@ionic/angular/standalone';
+import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonInput, IonItem } from '@ionic/angular/standalone';
 import { CustomerAuthService } from '../services/customer-auth.service';
 import { ToastService } from '../services/toast.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, IonButton, IonCard, IonCardContent, IonContent, IonInput, IonItem],
+  imports: [FormsModule, IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonInput, IonItem],
   template: `
 <ion-content [fullscreen]="true">
   <div class="auth-page">
@@ -21,7 +21,7 @@ import { ToastService } from '../services/toast.service';
             <p class="page-lead">Sign in to order fuel, track active deliveries and manage your account.</p>
           </div>
           <ion-item><ion-input label="Email address" labelPlacement="stacked" type="email" [(ngModel)]="email"></ion-input></ion-item>
-          <ion-item><ion-input label="Password" labelPlacement="stacked" type="password" [(ngModel)]="password"></ion-input></ion-item>
+          <ion-item><ion-input label="Password" labelPlacement="stacked" [type]="showPassword() ? 'text' : 'password'" [(ngModel)]="password"><ion-icon slot="end" style="cursor:pointer" [name]="showPassword() ? 'eye-off-outline' : 'eye-outline'" [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'" (click)="showPassword.set(!showPassword())"></ion-icon></ion-input></ion-item>
           <ion-button class="wf-button" expand="block" [disabled]="loading" (click)="login()">{{ loading ? 'Signing in...' : 'Sign in securely' }}</ion-button>
         </ion-card-content>
       </ion-card>
@@ -38,6 +38,7 @@ export class LoginPage {
   email = '';
   password = '';
   loading = false;
+  readonly showPassword = signal(false);
 
   async login(): Promise<void> {
     if (!this.email.trim() || !this.password) {

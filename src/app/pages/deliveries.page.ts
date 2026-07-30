@@ -35,7 +35,7 @@ export class DeliveriesPage {
   readonly error=signal('');
   readonly deliveries=computed(()=>{
     const term=this.search().trim().toLowerCase();
-    return this.jobs().filter(x=>x.status==='completed').filter(x=>!term||[x.jobNumber,x.siteName,x.equipmentName,x.driverName].some(v=>v?.toLowerCase().includes(term)));
+    return this.jobs().filter(x=>x.statusGroup==='delivered').filter(x=>!term||[x.jobNumber,x.siteName,x.equipmentName,x.driverName].some(v=>v?.toLowerCase().includes(term)));
   });
   ionViewWillEnter():void{this.load();}
   load():void{

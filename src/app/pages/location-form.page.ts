@@ -1,20 +1,89 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { IonButton, IonCard, IonCardContent, IonInput, IonItem, IonToggle } from '@ionic/angular/standalone';
+import { ActivatedRoute, Router } from '@angular/router';
+import { IonButton, IonCard, IonCardContent, IonInput, IonItem, IonSelect, IonSelectOption, IonToggle } from '@ionic/angular/standalone';
 import { firstValueFrom } from 'rxjs';
-import { CustomerApiService } from '../services/customer-api.service';
+import { CustomerApiService, CustomerSite } from '../services/customer-api.service';
+import { CustomerStateService } from '../services/customer-state.service';
 import { ToastService } from '../services/toast.service';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
-@Component({selector:'app-location-form',standalone:true,imports:[FormsModule,IonButton,IonCard,IonCardContent,IonInput,IonItem,IonToggle,MobileShellComponent],template:`
-<wf-customer-shell title="Add location" subtitle="Delivery site" backRoute="/locations" [showNav]="true"><main class="screen-body stack"><ion-card class="wf-card form-card"><ion-card-content class="stack">
-<ion-item><ion-input label="Location name" labelPlacement="stacked" [(ngModel)]="form.name" placeholder="e.g. South Distribution Center"></ion-input></ion-item>
-<ion-item><ion-input label="Street address" labelPlacement="stacked" [(ngModel)]="form.address"></ion-input></ion-item>
-<div class="grid-2"><ion-item><ion-input label="City" labelPlacement="stacked" [(ngModel)]="form.city"></ion-input></ion-item><ion-item><ion-input label="State" maxlength="2" labelPlacement="stacked" [(ngModel)]="form.state"></ion-input></ion-item></div>
-<ion-item><ion-input label="ZIP code" labelPlacement="stacked" [(ngModel)]="form.zipCode"></ion-input></ion-item><ion-item><ion-input label="On-site contact" labelPlacement="stacked" [(ngModel)]="form.contactName"></ion-input></ion-item><ion-item><ion-input label="Contact phone" labelPlacement="stacked" type="tel" [(ngModel)]="form.contactPhone"></ion-input></ion-item><ion-toggle [(ngModel)]="form.isDefault">Make this my primary location</ion-toggle>
-</ion-card-content></ion-card><ion-button class="wf-button" expand="block" [disabled]="saving" (click)="save()">{{saving?'Saving...':'Save location'}}</ion-button></main></wf-customer-shell>`})
+@Component({selector:'app-location-form',standalone:true,imports:[FormsModule,IonButton,IonCard,IonCardContent,IonInput,IonItem,IonSelect,IonSelectOption,IonToggle,MobileShellComponent],template:`
+<wf-customer-shell title="Add site" [subtitle]="step()===1?'Step 1 of 2 · Site details':'Step 2 of 2 · Equipment (optional)'" backRoute="/locations" [showNav]="true"><main class="screen-body stack">
+
+@if(step()===1){
+<ion-card class="wf-card form-card"><ion-card-content class="stack">
+<ion-item><ion-input label="Location name" labelPlacement="stacked" [(ngModel)]="siteForm.name" placeholder="e.g. South Distribution Center"></ion-input></ion-item>
+<ion-item><ion-input label="Street address" labelPlacement="stacked" [(ngModel)]="siteForm.address"></ion-input></ion-item>
+<div class="grid-2"><ion-item><ion-input label="City" labelPlacement="stacked" [(ngModel)]="siteForm.city"></ion-input></ion-item><ion-item><ion-input label="State" maxlength="2" labelPlacement="stacked" [(ngModel)]="siteForm.state"></ion-input></ion-item></div>
+<ion-item><ion-input label="ZIP code" labelPlacement="stacked" [(ngModel)]="siteForm.zipCode"></ion-input></ion-item>
+<ion-item><ion-input label="On-site contact" labelPlacement="stacked" [(ngModel)]="siteForm.contactName"></ion-input></ion-item>
+<ion-item><ion-input label="Contact phone" labelPlacement="stacked" type="tel" [(ngModel)]="siteForm.contactPhone"></ion-input></ion-item>
+<ion-toggle [(ngModel)]="siteForm.isDefault">Make this my primary location</ion-toggle>
+</ion-card-content></ion-card>
+<ion-button class="wf-button" expand="block" [disabled]="saving" (click)="saveSite()">{{saving?'Saving...':'Continue'}}</ion-button>
+}
+
+@if(step()===2){
+<ion-card class="wf-card soft-card"><ion-card-content><strong>{{createdSite()?.name}}</strong><p class="caption" style="margin:4px 0 0">Site saved. Add the equipment at this location now, or skip and add it later.</p></ion-card-content></ion-card>
+<ion-card class="wf-card form-card"><ion-card-content class="stack">
+<ion-item><ion-input label="Equipment name" labelPlacement="stacked" [(ngModel)]="equipmentForm.name"></ion-input></ion-item>
+<ion-item><ion-select label="Equipment type" labelPlacement="stacked" [(ngModel)]="equipmentForm.type"><ion-select-option value="tank">Storage tank</ion-select-option><ion-select-option value="generator">Generator</ion-select-option><ion-select-option value="pump">Pump</ion-select-option><ion-select-option value="vehicle_tank">Vehicle tank</ion-select-option><ion-select-option value="other">Other</ion-select-option></ion-select></ion-item>
+<ion-item><ion-select label="Fuel product" labelPlacement="stacked" [(ngModel)]="equipmentForm.fuelType"><ion-select-option value="diesel">Diesel</ion-select-option><ion-select-option value="off_road_diesel">Off-road Diesel</ion-select-option><ion-select-option value="gasoline_regular">Regular Unleaded</ion-select-option><ion-select-option value="gasoline_premium">Premium Unleaded</ion-select-option></ion-select></ion-item>
+<ion-item><ion-input label="Capacity in gallons" labelPlacement="stacked" type="number" [(ngModel)]="equipmentForm.capacityGallons"></ion-input></ion-item>
+<ion-item><ion-input label="Estimated level %" labelPlacement="stacked" type="number" [(ngModel)]="equipmentForm.estimatedLevelPercent"></ion-input></ion-item>
+</ion-card-content></ion-card>
+<ion-button class="wf-button" expand="block" [disabled]="saving" (click)="saveEquipment()">{{saving?'Saving...':'Add equipment'}}</ion-button>
+<ion-button class="wf-button wf-secondary" expand="block" [disabled]="saving" (click)="skip()">Skip for now</ion-button>
+}
+
+</main></wf-customer-shell>`})
 export class LocationFormPage{
-  private readonly api=inject(CustomerApiService);private readonly router=inject(Router);private readonly toast=inject(ToastService);saving=false;
-  form={name:'',address:'',city:'',state:'',zipCode:'',contactName:'',contactPhone:'',isDefault:false};
-  async save():Promise<void>{if(!this.form.name.trim()||!this.form.address.trim()||!this.form.city.trim()||this.form.state.trim().length!==2||!this.form.zipCode.trim()){void this.toast.error('Complete the required address fields.');return;}this.saving=true;try{await firstValueFrom(this.api.addSite({...this.form,contactName:this.form.contactName||undefined,contactPhone:this.form.contactPhone||undefined}));await this.router.navigateByUrl('/locations');}catch{void this.toast.error('The location could not be saved.');}finally{this.saving=false;}}
+  private readonly api=inject(CustomerApiService);private readonly router=inject(Router);private readonly toast=inject(ToastService);
+  private readonly route=inject(ActivatedRoute);private readonly state=inject(CustomerStateService);
+  private readonly returnUrl=this.route.snapshot.queryParamMap.get('returnUrl')||'/locations';
+  saving=false;
+  readonly step=signal<1|2>(1);
+  readonly createdSite=signal<CustomerSite|null>(null);
+  siteForm={name:'',address:'',city:'',state:'',zipCode:'',contactName:'',contactPhone:'',isDefault:false};
+  equipmentForm={name:'',type:'tank',fuelType:'diesel',capacityGallons:null as number|null,estimatedLevelPercent:null as number|null};
+
+  async saveSite():Promise<void>{
+    if(!this.siteForm.name.trim()||!this.siteForm.address.trim()||!this.siteForm.city.trim()||this.siteForm.state.trim().length!==2||!this.siteForm.zipCode.trim()){void this.toast.error('Complete the required address fields.');return;}
+    this.saving=true;
+    try{
+      const site=await firstValueFrom(this.api.addSite({...this.siteForm,contactName:this.siteForm.contactName||undefined,contactPhone:this.siteForm.contactPhone||undefined}));
+      this.createdSite.set(site);
+      this.step.set(2);
+    }catch{
+      void this.toast.error('The location could not be saved.');
+    }finally{
+      this.saving=false;
+    }
+  }
+
+  async saveEquipment():Promise<void>{
+    const site=this.createdSite();
+    if(!site)return;
+    if(!this.equipmentForm.name.trim()){void this.toast.error('Enter an equipment name.');return;}
+    this.saving=true;
+    try{
+      await firstValueFrom(this.api.createEquipment({
+        siteId:site.id,name:this.equipmentForm.name,type:this.equipmentForm.type,fuelType:this.equipmentForm.fuelType,
+        capacityGallons:this.equipmentForm.capacityGallons??undefined,estimatedLevelPercent:this.equipmentForm.estimatedLevelPercent??undefined,
+      }));
+      this.finish();
+    }catch{
+      void this.toast.error('The equipment could not be saved.');
+    }finally{
+      this.saving=false;
+    }
+  }
+
+  skip():void{this.finish();}
+
+  private finish():void{
+    const site=this.createdSite();
+    if(site&&this.returnUrl!=='/locations')this.state.selectLocation(site);
+    void this.router.navigateByUrl(this.returnUrl);
+  }
 }

@@ -6,7 +6,7 @@ import { CustomerApiService, CustomerSite } from '../services/customer-api.servi
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 import { LoaderComponent } from '../shared/loader.component';
 @Component({selector:'app-locations',standalone:true,imports:[CommonModule,RouterLink,IonButton,IonCard,IonCardContent,IonIcon,MobileShellComponent,LoaderComponent],template:`
-<wf-customer-shell title="Locations" subtitle="Delivery sites" backRoute="/profile" [showNav]="true">
+<wf-customer-shell title="Sites" subtitle="Delivery locations" [showNav]="true">
 @if(loading()&&!hasLoaded()){<section class="screen-body"><wf-loader mode="section" message="Loading locations..." /></section>}
 @else{<main class="screen-body stack">
 @if(error()){<div class="load-error"><span>{{error()}}</span><button type="button" (click)="load()">Retry</button></div>}

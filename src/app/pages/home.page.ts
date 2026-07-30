@@ -6,33 +6,81 @@ import { firstValueFrom } from 'rxjs';
 import { CustomerApiService, CustomerEquipment, CustomerInvoice, CustomerJob, CustomerOrder, CustomerProfile } from '../services/customer-api.service';
 import { MobileShellComponent, RefreshRequest } from '../shared/mobile-shell.component';
 import { LoaderComponent } from '../shared/loader.component';
+import { deliveryStatusIcon } from '../shared/status';
+
+interface HeroDelivery { orderNumber:string; dayLabel:string; timeLabel:string; site:string; gallons:number; fuelType:string; trackRoute:(string|number)[]; scheduledAt:string; statusLabel:string; statusIcon:string; }
 
 @Component({selector:'app-home',standalone:true,imports:[CommonModule,RouterLink,IonButton,IonCard,IonCardContent,IonIcon,MobileShellComponent,LoaderComponent],template:`
-<wf-customer-shell [title]="greeting() + ', ' + (profile()?.contactFirstName || 'there')" [subtitle]="profile()?.companyName || 'Customer account'" [showNav]="true" [refreshable]="true" (refreshRequested)="refreshHome($event)">
+<wf-customer-shell [title]="profile()?.companyName || 'Your account'" [subtitle]="greeting() + ','" [showNav]="true" [refreshable]="true" (refreshRequested)="refreshHome($event)">
 @if(loading()&&!hasLoaded()){<section class="screen-body"><wf-loader mode="section" message="Loading your dashboard..." /></section>}
-@else{<main class="screen-body stack">
+@else{<ng-container><main class="screen-body stack">
 @if(error()){<div class="load-error"><span>{{error()}}</span><button type="button" (click)="load()">Retry</button></div>}
+
 <ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>Order fuel</ion-button>
 
-<section><div class="row-between"><h2 class="section-title">Billing</h2><a routerLink="/invoices" class="caption">View all</a></div><ion-card class="wf-card" [class.warning-card]="openInvoiceCount()>0" routerLink="/invoices"><ion-card-content class="row"><div class="icon-tile"><ion-icon name="card-outline"></ion-icon></div><div class="grow">@if(openInvoiceCount()>0){<strong>{{openInvoiceTotal()|currency}}</strong><p class="caption" style="margin:3px 0 0">{{openInvoiceCount()}} invoice{{openInvoiceCount()===1?'':'s'}} due</p>}@else{<strong>You're all caught up</strong><p class="caption" style="margin:3px 0 0">No open invoices</p>}</div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card></section>
+@if(openInvoiceCount()>0||attentionEquipment()){<section class="stack" style="gap:10px">
+@if(openInvoiceCount()>0){<ion-card class="wf-card warning-card compact" routerLink="/invoices"><ion-card-content class="row-between alert-row"><div class="row"><ion-icon name="alert-circle-outline"></ion-icon><span>{{openInvoiceCount()}} invoice{{openInvoiceCount()===1?'':'s'}} due · {{openInvoiceTotal()|currency}}</span></div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card>}
+@if(attentionEquipment();as item){<ion-card class="wf-card warning-card compact" [routerLink]="['/equipment-detail',item.id]"><ion-card-content class="row-between alert-row"><div class="row"><ion-icon name="alert-circle-outline"></ion-icon><span>{{item.name}} low · {{item.estimatedLevelPercent||0}}% remaining</span></div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card>}
+</section>}
 
-@if(attentionEquipment();as item){<section><div class="row-between"><h2 class="section-title">Equipment attention</h2><a routerLink="/equipment" class="caption">View all</a></div><ion-card class="wf-card warning-card" [routerLink]="['/equipment-detail',item.id]"><ion-card-content><div class="row"><div class="icon-tile"><ion-icon name="cube-outline"></ion-icon></div><div class="grow"><strong>{{item.name}}</strong><p class="caption" style="margin:5px 0 9px">{{item.siteName}} · estimated {{item.estimatedLevelPercent || 0}}% remaining</p><div class="progress-track orange"><span [style.width.%]="item.estimatedLevelPercent || 0"></span></div></div><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card></section>}
+@if(heroDelivery();as hero){<section><ion-card class="wf-card next-delivery-card"><ion-card-content>
+<span class="hero-eyebrow">Next Delivery</span>
+<div class="row-between" style="margin-top:6px">
+<span class="hero-status-pill"><ion-icon [name]="hero.statusIcon"></ion-icon>{{hero.statusLabel}}</span>
+<span class="hero-time-pill">{{heroTimeframe()}}</span>
+</div>
+<div class="row" style="margin-top:14px"><div class="icon-tile hero-icon"><ion-icon name="car-sport-outline"></ion-icon></div><div class="grow"><strong class="hero-order">{{hero.orderNumber}}</strong><p class="hero-detail">{{hero.dayLabel}}, {{hero.timeLabel}}</p><p class="hero-detail">{{hero.site}}</p><p class="hero-detail">{{hero.gallons}} Gal · {{hero.fuelType}}</p></div></div>
+<ion-button class="wf-button hero-track-btn" expand="block" [routerLink]="hero.trackRoute">Track Delivery<ion-icon slot="end" name="chevron-forward-outline"></ion-icon></ion-button>
+</ion-card-content></ion-card></section>}
 
-@if(recentOrders().length){<section><div class="row-between"><h2 class="section-title">Recent orders</h2><a routerLink="/orders" class="caption">View all</a></div><div class="stack" style="gap:8px">@for(order of recentOrders();track order.id){<ion-card class="wf-card compact" [routerLink]="['/order-status',order.id]"><ion-card-content class="row-between"><div><span class="pill" [class.info]="order.status==='in_progress'" [class.success]="order.status==='completed'" [class.warning]="!['in_progress','completed'].includes(order.status)">{{statusLabel(order.status)}}</span><p class="caption" style="margin:6px 0 0">{{order.siteName}} · {{order.requestedGallons}} gal</p></div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card>}</div></section>}
-
-@if(recentDeliveries().length){<section><div class="row-between"><h2 class="section-title">Recent deliveries</h2><a routerLink="/deliveries" class="caption">View all</a></div><div class="stack" style="gap:8px">@for(job of recentDeliveries();track job.id){<ion-card class="wf-card compact" [routerLink]="['/delivery-detail',job.id]"><ion-card-content class="row-between"><div><strong>{{job.deliveredGallons??job.targetGallons}} gal</strong><p class="caption" style="margin:3px 0 0">{{job.siteName}} · {{job.completedAt|date:'mediumDate'}}</p></div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card>}</div></section>}
-
-<section><h2 class="section-title">Account totals</h2><section class="grid-2"><ion-card class="wf-card"><ion-card-content class="metric"><span class="label">Lifetime deliveries</span><strong>{{profile()?.totalDeliveries??0}}</strong><span class="caption">Completed</span></ion-card-content></ion-card><ion-card class="wf-card"><ion-card-content class="metric"><span class="label">Lifetime fuel</span><strong>{{(profile()?.totalGallonsDelivered??0)|number:'1.0-0'}}</strong><span class="caption">Gallons delivered</span></ion-card-content></ion-card></section></section>
-
-<section><div class="row-between"><h2 class="section-title">Delivery status</h2><a routerLink="/orders" class="caption">View all</a></div>
-@if(activeJob();as job){<ion-card class="wf-card hero-card"><ion-card-content><div class="row-between"><div><span class="pill dark">{{statusLabel(job.status)}}</span><h2 style="margin:16px 0 5px">{{job.siteName}}</h2><p class="caption" style="margin:0">{{job.jobNumber}} · {{job.scheduledAt|date:'medium'}}</p></div><div class="icon-tile"><ion-icon name="truck-outline"></ion-icon></div></div><div style="height:16px"></div><ion-button class="wf-button" color="tertiary" expand="block" [routerLink]="['/live-tracking',job.id]">View delivery status</ion-button></ion-card-content></ion-card>}
-@else if(nextOrder();as order){<ion-card class="wf-card" [routerLink]="['/order-status',order.id]"><ion-card-content><div class="row-between"><div><span class="pill info">{{statusLabel(order.status)}}</span><h2 style="margin:12px 0 4px">{{order.requestedGallons}} gal · {{order.fuelType}}</h2><p class="caption" style="margin:0">{{order.siteName}} · {{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</p></div><ion-icon name="chevron-forward-outline"></ion-icon></div></ion-card-content></ion-card>}
-@else{<ion-card class="wf-card soft-card text-center"><ion-card-content><div class="icon-tile" style="margin:0 auto 10px"><ion-icon name="checkmark-circle-outline"></ion-icon></div><strong>No active delivery</strong><p class="caption">Place a new order and we'll show live status here.</p></ion-card-content></ion-card>}
+<section><div class="row-between"><h2 class="section-title">Overview</h2><button type="button" class="period-toggle" (click)="cycleStatsPeriod()">{{statsPeriodLabel()}}<ion-icon name="chevron-down-outline"></ion-icon></button></div>
+<div class="grid-2">
+<ion-card class="wf-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="list-outline"></ion-icon></div><span class="label">Total Orders</span><strong>{{totalOrders()}}</strong>@if(ordersDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}}{{abs(d)}}%</span>}</ion-card-content></ion-card>
+<ion-card class="wf-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="water-outline"></ion-icon></div><span class="label">Gallons Ordered</span><strong>{{gallonsOrdered()|number:'1.0-0'}}</strong>@if(gallonsDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}}{{abs(d)}}%</span>}</ion-card-content></ion-card>
+<ion-card class="wf-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="cash-outline"></ion-icon></div><span class="label">Amount Spent</span><strong>{{amountSpent()|currency}}</strong>@if(amountDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}}{{abs(d)}}%</span>}</ion-card-content></ion-card>
+<ion-card class="wf-card" routerLink="/orders"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="time-outline"></ion-icon></div><span class="label">Pending Orders</span><strong>{{pendingOrdersCount()}}</strong><span class="stat-link">View details<ion-icon name="chevron-forward-outline"></ion-icon></span></ion-card-content></ion-card>
+</div>
 </section>
 
-<section><h2 class="section-title">Quick access</h2><div class="grid-2"><ion-card class="wf-card" routerLink="/locations"><ion-card-content class="row"><div class="icon-tile"><ion-icon name="location-outline"></ion-icon></div><strong>Locations</strong></ion-card-content></ion-card></div></section>
-</main>}
-</wf-customer-shell>`})
+<section><div class="row-between"><h2 class="section-title">Recent Orders</h2><a routerLink="/orders" class="caption">View All</a></div><div class="stack" style="gap:10px">
+@for(order of recentOrders();track order.id){<ion-card class="wf-card compact" [routerLink]="['/order-status',order.id]"><ion-card-content class="row-between">
+<div><strong>{{order.orderNumber}}</strong><p class="caption" style="margin:4px 0 0">{{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</p></div>
+<div class="text-right"><strong>{{order.requestedGallons}} Gal</strong><p class="caption" style="margin:4px 0 0">{{order.estimatedTotal|currency}}</p><span class="status-text" [class]="order.statusTone">{{order.statusLabel}}</span></div>
+</ion-card-content></ion-card>}
+@empty{<ion-card class="wf-card soft-card text-center"><ion-card-content><strong>No orders yet</strong><p class="caption">Place your first fuel order to see it here.</p></ion-card-content></ion-card>}
+</div></section>
+</main>
+</ng-container>}
+</wf-customer-shell>`,
+styles:[`
+  .next-delivery-card{--background:transparent;background:transparent;color:var(--wf-text)}
+  .next-delivery-card ion-card-content{color:var(--wf-text)}
+  .hero-eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+  .hero-status-pill{display:inline-flex;align-items:center;gap:6px;background:var(--wf-primary-soft);color:var(--wf-primary);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}
+  .hero-status-pill ion-icon{font-size:15px}
+  .hero-time-pill{background:var(--wf-primary-soft);color:var(--wf-primary);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800;flex:0 0 auto}
+  .hero-icon{background:var(--wf-primary-soft);color:var(--wf-primary)}
+  .hero-order{font-size:19px;display:block}
+  .hero-detail{margin:3px 0 0;font-size:13px;color:var(--wf-muted)}
+  .hero-track-btn{margin-top:16px}
+  .period-toggle{display:flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--wf-muted);font-size:13px;font-weight:700;cursor:pointer;padding:0}
+  .period-toggle ion-icon{font-size:15px}
+  .stat-tile{display:grid;gap:8px;align-content:start;min-height:118px}
+  .stat-tile .label{font-size:13px;color:var(--wf-muted)}
+  .stat-tile strong{font-size:24px;line-height:1}
+  .stat-delta{font-size:12px;font-weight:800}
+  .stat-delta.up{color:var(--wf-success)}
+  .stat-delta.down{color:var(--wf-danger)}
+  .stat-link{font-size:12px;font-weight:800;color:var(--wf-primary);display:inline-flex;align-items:center;gap:2px}
+  .stat-link ion-icon{font-size:14px}
+  .text-right{text-align:right}
+  .status-text{display:block;margin-top:4px;font-size:12px;font-weight:800}
+  .status-text.info{color:var(--wf-muted)}
+  .status-text.success{color:var(--wf-success)}
+  .status-text.warning{color:var(--wf-warning)}
+  .status-text.danger{color:var(--wf-danger)}
+  .alert-row ion-icon:first-child{color:var(--wf-warning);font-size:19px}
+`]})
 export class HomePage {
   private readonly api=inject(CustomerApiService);
   readonly profile=signal<CustomerProfile|null>(null);
@@ -43,18 +91,60 @@ export class HomePage {
   readonly loading=signal(true);
   readonly hasLoaded=signal(false);
   readonly error=signal('');
+  readonly statsPeriod=signal<'month'|'all'>('month');
+  readonly abs=Math.abs;
   readonly greeting=computed(()=>{const h=new Date().getHours();return h<12?'Good morning':h<18?'Good afternoon':'Good evening';});
-  readonly activeJob=computed(()=>this.jobs().find(x=>!['completed','cancelled'].includes(x.status))??null);
+  readonly activeJob=computed(()=>this.jobs().find(x=>x.statusGroup==='active')??null);
   readonly nextOrder=computed(()=>{
-    const upcoming=this.orders().filter(x=>!['completed','cancelled'].includes(x.status));
+    const upcoming=this.orders().filter(x=>x.statusGroup!=='delivered'&&x.statusGroup!=='cancelled');
     return upcoming.sort((a,b)=>new Date(a.requestedDate).getTime()-new Date(b.requestedDate).getTime())[0]??null;
   });
-  readonly openInvoiceCount=computed(()=>this.invoices().filter(x=>x.status==='sent'||x.status==='payment_pending').length);
-  readonly openInvoiceTotal=computed(()=>this.invoices().filter(x=>x.status==='sent'||x.status==='payment_pending').reduce((sum,x)=>sum+x.total,0));
-  readonly attentionEquipment=computed(()=>this.equipment().find(x=>x.status==='active'&&Number(x.estimatedLevelPercent??0)<=35)??null);
-  readonly recentOrders=computed(()=>[...this.orders()].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()).slice(0,2));
-  readonly recentDeliveries=computed(()=>this.jobs().filter(x=>x.status==='completed').sort((a,b)=>new Date(b.completedAt??0).getTime()-new Date(a.completedAt??0).getTime()).slice(0,2));
-  statusLabel(value:string):string{return value.replace(/_/g,' ').replace(/\b\w/g,x=>x.toUpperCase());}
+  readonly openInvoiceCount=computed(()=>this.invoices().filter(x=>x.isOpen).length);
+  readonly openInvoiceTotal=computed(()=>this.invoices().filter(x=>x.isOpen).reduce((sum,x)=>sum+x.total,0));
+  readonly attentionEquipment=computed(()=>this.equipment().find(x=>x.isActive&&Number(x.estimatedLevelPercent??0)<=35)??null);
+  readonly recentOrders=computed(()=>[...this.orders()].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()).slice(0,5));
+
+  readonly heroDelivery=computed<HeroDelivery|null>(()=>{
+    const job=this.activeJob();
+    if(job){return {orderNumber:job.jobNumber,dayLabel:this.formatDay(job.scheduledAt),timeLabel:this.formatTime(job.scheduledAt),site:job.siteName,gallons:job.targetGallons,fuelType:job.fuelType,trackRoute:['/live-tracking',job.id],scheduledAt:job.scheduledAt,statusLabel:job.statusLabel,statusIcon:deliveryStatusIcon(job.status)};}
+    const order=this.nextOrder();
+    if(order){const scheduledAt=this.composeOrderDateTime(order);return {orderNumber:order.orderNumber,dayLabel:this.formatDay(order.requestedDate),timeLabel:order.deliveryWindow,site:order.siteName,gallons:order.requestedGallons,fuelType:order.fuelType,trackRoute:['/order-status',order.id],scheduledAt,statusLabel:order.statusLabel,statusIcon:deliveryStatusIcon(order.status)};}
+    return null;
+  });
+  readonly heroTimeframe=computed(()=>{
+    const hero=this.heroDelivery();
+    if(!hero)return '';
+    const target=new Date(hero.scheduledAt);
+    if(Number.isNaN(target.getTime()))return '';
+    const now=new Date();
+    const diffMs=target.getTime()-now.getTime();
+    if(diffMs<=0)return 'Now';
+    const diffHours=diffMs/3600000;
+    if(diffHours<=6){
+      const totalMin=Math.round(diffMs/60000);
+      if(totalMin<60)return `In ${totalMin} Minute${totalMin===1?'':'s'}`;
+      const hrs=Math.round(diffMs/3600000);
+      return `In ${hrs} Hour${hrs===1?'':'s'}`;
+    }
+    if(target.toDateString()===now.toDateString())return 'Today';
+    const tomorrow=new Date(now);tomorrow.setDate(now.getDate()+1);
+    if(target.toDateString()===tomorrow.toDateString())return 'Tomorrow';
+    return target.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  });
+
+  readonly currentMonthOrders=computed(()=>this.ordersInMonth(0));
+  readonly previousMonthOrders=computed(()=>this.ordersInMonth(1));
+  readonly statsOrders=computed(()=>this.statsPeriod()==='month'?this.currentMonthOrders():this.orders());
+  readonly statsPeriodLabel=computed(()=>this.statsPeriod()==='month'?'This Month':'All Time');
+  readonly totalOrders=computed(()=>this.statsOrders().length);
+  readonly gallonsOrdered=computed(()=>this.sumGallons(this.statsOrders()));
+  readonly amountSpent=computed(()=>this.sumAmount(this.statsOrders()));
+  readonly pendingOrdersCount=computed(()=>this.statsOrders().filter(x=>x.statusGroup!=='delivered'&&x.statusGroup!=='cancelled').length);
+  readonly ordersDelta=computed<number|null>(()=>this.statsPeriod()==='month'?this.percentChange(this.currentMonthOrders().length,this.previousMonthOrders().length):null);
+  readonly gallonsDelta=computed<number|null>(()=>this.statsPeriod()==='month'?this.percentChange(this.sumGallons(this.currentMonthOrders()),this.sumGallons(this.previousMonthOrders())):null);
+  readonly amountDelta=computed<number|null>(()=>this.statsPeriod()==='month'?this.percentChange(this.sumAmount(this.currentMonthOrders()),this.sumAmount(this.previousMonthOrders())):null);
+
+  cycleStatsPeriod():void{this.statsPeriod.update(p=>p==='month'?'all':'month');}
   ionViewWillEnter():void{void this.load();}
   async refreshHome(request:RefreshRequest):Promise<void>{try{await this.load();}finally{request.complete();}}
   async load():Promise<void>{
@@ -68,5 +158,36 @@ export class HomePage {
     }finally{
       this.loading.set(false);
     }
+  }
+
+  private ordersInMonth(monthsAgo:number):CustomerOrder[]{
+    const now=new Date();
+    const y=now.getFullYear();const m=now.getMonth()-monthsAgo;
+    return this.orders().filter(o=>{const d=new Date(o.createdAt);return d.getFullYear()===new Date(y,m,1).getFullYear()&&d.getMonth()===new Date(y,m,1).getMonth();});
+  }
+  private sumGallons(list:CustomerOrder[]):number{return list.reduce((sum,x)=>sum+x.requestedGallons,0);}
+  private sumAmount(list:CustomerOrder[]):number{return list.reduce((sum,x)=>sum+x.estimatedTotal,0);}
+  private percentChange(current:number,previous:number):number{if(previous<=0)return current>0?100:0;return Math.round(((current-previous)/previous)*100);}
+  private formatDay(iso:string):string{
+    const d=new Date(iso);
+    if(Number.isNaN(d.getTime()))return '';
+    return d.toDateString()===new Date().toDateString()?'Today':d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+  }
+  private formatTime(iso:string):string{
+    const d=new Date(iso);
+    return Number.isNaN(d.getTime())?'':d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  }
+  private parseWindowStart(windowText:string):{h:number;m:number}|null{
+    const match=windowText?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if(!match)return null;
+    let h=parseInt(match[1],10);const m=parseInt(match[2],10);const ap=match[3].toUpperCase();
+    if(ap==='PM'&&h!==12)h+=12;if(ap==='AM'&&h===12)h=0;
+    return {h,m};
+  }
+  private composeOrderDateTime(order:CustomerOrder):string{
+    const start=this.parseWindowStart(order.deliveryWindow);
+    const date=new Date(order.requestedDate);
+    if(start&&!Number.isNaN(date.getTime())){date.setHours(start.h,start.m,0,0);return date.toISOString();}
+    return order.requestedDate;
   }
 }
