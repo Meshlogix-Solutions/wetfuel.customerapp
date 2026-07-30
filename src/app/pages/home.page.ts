@@ -66,7 +66,7 @@ interface HeroDelivery { orderNumber:string; dayLabel:string; timeLabel:string; 
 <section><div class="row-between"><h2 class="section-title">Recent Orders</h2><a routerLink="/orders" class="caption">View All</a></div><div class="stack" style="gap:10px">
 @for(order of recentOrders();track order.id){<ion-card class="wf-card compact overview-card" [routerLink]="['/order-status',order.id]"><ion-card-content class="row-between">
 <div><strong>{{order.orderNumber}}</strong><p class="caption" style="margin:4px 0 0">{{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</p></div>
-<div class="text-right"><strong>{{order.requestedGallons}} Gal</strong><p class="caption" style="margin:4px 0 0">{{order.estimatedTotal|currency}}</p><span class="status-text" [class]="order.statusTone">{{order.statusLabel}}</span></div>
+<div class="text-right"><strong>{{order.requestedGallons}} Gal</strong><p class="caption" style="margin:4px 0 0">{{order.estimatedTotal|currency}}</p><span class="status-text" [ngClass]="order.statusTone || 'info'">{{order.statusLabel || order.status}}</span></div>
 </ion-card-content></ion-card>}
 @empty{<ion-card class="wf-card soft-card text-center"><ion-card-content><strong>No orders yet</strong><p class="caption">Place your first fuel order to see it here.</p></ion-card-content></ion-card>}
 </div></section>

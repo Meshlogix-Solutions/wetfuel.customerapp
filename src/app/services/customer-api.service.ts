@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { enrichEquipment, enrichInvoice, enrichJob, enrichOrder, enrichProfile } from '../shared/status';
 interface ApiResponse<T>{data:T;message:string;statusCode:number;}
 export interface CustomerSite { id:string;customerId:string;name:string;address:string;city:string;state:string;zipCode:string;latitude?:number;longitude?:number;contactName?:string;contactPhone?:string;equipmentCount:number;isDefault:boolean; }
 export interface CustomerProfile { id:string;companyName:string;contactName:string;contactFirstName:string;contactLastName:string;contactEmail:string;contactPhone?:string;billingTerm:string;status:string;statusLabel:string;isActive:boolean;totalDeliveries:number;totalGallonsDelivered:number;outstandingBalance:number; }
@@ -17,21 +18,21 @@ export interface CustomerInvoiceLineItem {id:string;description:string;fuelType:
 export interface CustomerInvoice {id:string;invoiceNumber:string;customerId:string;customerName:string;status:string;statusLabel:string;statusTone:string;statusGroup:string;canPay:boolean;isOpen:boolean;isOverdue:boolean;issueDate?:string;dueDate?:string;paidDate?:string;subtotal:number;taxTotal:number;total:number;notes?:string;lineItems:CustomerInvoiceLineItem[];createdAt:string;updatedAt:string;}
 @Injectable({providedIn:'root'}) export class CustomerApiService {
   private readonly http=inject(HttpClient);
-  getCurrentCustomer():Observable<CustomerProfile>{return this.http.get<ApiResponse<CustomerProfile>>(`${environment.apiUrl}/customer/me`).pipe(map(r=>r.data));}
+  getCurrentCustomer():Observable<CustomerProfile>{return this.http.get<ApiResponse<CustomerProfile>>(`${environment.apiUrl}/customer/me`).pipe(map(r=>enrichProfile(r.data)));}
   getSites():Observable<CustomerSite[]>{return this.http.get<ApiResponse<CustomerSite[]>>(`${environment.apiUrl}/customer/app/sites`).pipe(map(r=>r.data));}
   addSite(request:AddSiteRequest):Observable<CustomerSite>{return this.http.post<ApiResponse<CustomerSite>>(`${environment.apiUrl}/customer/app/sites`,request).pipe(map(r=>r.data));}
-  getEquipment():Observable<CustomerEquipment[]>{return this.http.get<ApiResponse<CustomerEquipment[]>>(`${environment.apiUrl}/equipment/app`).pipe(map(r=>r.data));}
-  getEquipmentById(id:string):Observable<CustomerEquipment>{return this.http.get<ApiResponse<CustomerEquipment>>(`${environment.apiUrl}/equipment/app/${id}`).pipe(map(r=>r.data));}
-  createEquipment(request:EquipmentInput):Observable<CustomerEquipment>{return this.http.post<ApiResponse<CustomerEquipment>>(`${environment.apiUrl}/equipment/app`,request).pipe(map(r=>r.data));}
+  getEquipment():Observable<CustomerEquipment[]>{return this.http.get<ApiResponse<CustomerEquipment[]>>(`${environment.apiUrl}/equipment/app`).pipe(map(r=>(r.data??[]).map(enrichEquipment)));}
+  getEquipmentById(id:string):Observable<CustomerEquipment>{return this.http.get<ApiResponse<CustomerEquipment>>(`${environment.apiUrl}/equipment/app/${id}`).pipe(map(r=>enrichEquipment(r.data)));}
+  createEquipment(request:EquipmentInput):Observable<CustomerEquipment>{return this.http.post<ApiResponse<CustomerEquipment>>(`${environment.apiUrl}/equipment/app`,request).pipe(map(r=>enrichEquipment(r.data)));}
   updateEquipment(id:string,request:EquipmentInput&{status:string}):Observable<boolean>{return this.http.put<ApiResponse<boolean>>(`${environment.apiUrl}/equipment/app/${id}`,request).pipe(map(r=>r.data));}
-  getOrders():Observable<CustomerOrder[]>{return this.http.get<ApiResponse<CustomerOrder[]>>(`${environment.apiUrl}/customer-order/app`).pipe(map(r=>r.data));}
-  getJobs():Observable<CustomerJob[]>{return this.http.get<ApiResponse<CustomerJob[]>>(`${environment.apiUrl}/job/app`).pipe(map(r=>r.data));}
-  getJob(id:string):Observable<CustomerJob>{return this.http.get<ApiResponse<CustomerJob>>(`${environment.apiUrl}/job/app/${id}`).pipe(map(r=>r.data));}
-  getOrder(id:string):Observable<CustomerOrder>{return this.http.get<ApiResponse<CustomerOrder>>(`${environment.apiUrl}/customer-order/app/${id}`).pipe(map(r=>r.data));}
+  getOrders():Observable<CustomerOrder[]>{return this.http.get<ApiResponse<CustomerOrder[]>>(`${environment.apiUrl}/customer-order/app`).pipe(map(r=>(r.data??[]).map(enrichOrder)));}
+  getJobs():Observable<CustomerJob[]>{return this.http.get<ApiResponse<CustomerJob[]>>(`${environment.apiUrl}/job/app`).pipe(map(r=>(r.data??[]).map(enrichJob)));}
+  getJob(id:string):Observable<CustomerJob>{return this.http.get<ApiResponse<CustomerJob>>(`${environment.apiUrl}/job/app/${id}`).pipe(map(r=>enrichJob(r.data)));}
+  getOrder(id:string):Observable<CustomerOrder>{return this.http.get<ApiResponse<CustomerOrder>>(`${environment.apiUrl}/customer-order/app/${id}`).pipe(map(r=>enrichOrder(r.data)));}
   estimateOrder(request:CustomerOrderEstimateRequest):Observable<CustomerOrderEstimate>{return this.http.post<ApiResponse<CustomerOrderEstimate>>(`${environment.apiUrl}/customer-order/app/estimate`,request).pipe(map(r=>r.data));}
-  createOrder(request:CreateCustomerOrderRequest):Observable<CustomerOrder>{return this.http.post<ApiResponse<CustomerOrder>>(`${environment.apiUrl}/customer-order/app`,request).pipe(map(r=>r.data));}
+  createOrder(request:CreateCustomerOrderRequest):Observable<CustomerOrder>{return this.http.post<ApiResponse<CustomerOrder>>(`${environment.apiUrl}/customer-order/app`,request).pipe(map(r=>enrichOrder(r.data)));}
   cancelOrder(id:string):Observable<boolean>{return this.http.post<ApiResponse<boolean>>(`${environment.apiUrl}/customer-order/app/${id}/cancel`,{}).pipe(map(r=>r.data));}
-  getInvoices():Observable<CustomerInvoice[]>{return this.http.get<ApiResponse<CustomerInvoice[]>>(`${environment.apiUrl}/invoice/app`).pipe(map(r=>r.data));}
-  getInvoice(id:string):Observable<CustomerInvoice>{return this.http.get<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}`).pipe(map(r=>r.data));}
-  payInvoice(id:string):Observable<CustomerInvoice>{return this.http.post<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}/pay`,{}).pipe(map(r=>r.data));}
+  getInvoices():Observable<CustomerInvoice[]>{return this.http.get<ApiResponse<CustomerInvoice[]>>(`${environment.apiUrl}/invoice/app`).pipe(map(r=>(r.data??[]).map(enrichInvoice)));}
+  getInvoice(id:string):Observable<CustomerInvoice>{return this.http.get<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}`).pipe(map(r=>enrichInvoice(r.data)));}
+  payInvoice(id:string):Observable<CustomerInvoice>{return this.http.post<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}/pay`,{}).pipe(map(r=>enrichInvoice(r.data)));}
 }
