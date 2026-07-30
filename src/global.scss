@@ -71,7 +71,8 @@ ion-card.wf-card.compact ion-card-content { padding: 13px; }
 .metric .label { font-size: 13px; color: var(--wf-muted); }
 
 .icon-tile { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--wf-primary-soft); font-size: 22px; flex: 0 0 auto; color: var(--wf-primary); }
-.icon-tile ion-icon { font-size: 23px; }
+.icon-tile ion-icon { font-size: 23px; width: 1em; height: 1em; display: block; }
+ion-icon { visibility: visible; }
 ion-item ion-icon[slot="start"] { color: var(--wf-primary); }
 .avatar { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--wf-primary-soft); color: var(--wf-primary); font-weight: 900; }
 .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--wf-success); display: inline-block; }
