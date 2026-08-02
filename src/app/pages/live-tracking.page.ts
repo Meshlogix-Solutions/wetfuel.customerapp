@@ -1,26 +1,33 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { IonButton, IonIcon } from '@ionic/angular/standalone';
 import { CustomerApiService, CustomerJob } from '../services/customer-api.service';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 import { LoaderComponent } from '../shared/loader.component';
+import { MapboxTrackingMapComponent } from '../shared/mapbox-tracking-map.component';
 
 @Component({
   selector: 'app-live-tracking',
   standalone: true,
-  imports: [CommonModule, IonButton, IonIcon, MobileShellComponent, LoaderComponent],
+  imports: [CommonModule, IonButton, IonIcon, MobileShellComponent, LoaderComponent, MapboxTrackingMapComponent],
   template: `
     <wf-customer-shell title="Delivery status" [subtitle]="job()?.jobNumber || 'Dispatch'" backRoute="/home" [showNav]="true">
       <main class="screen-body tracking-body">
         @if (job(); as x) {
-          <section class="tracking-map" aria-label="Illustrated delivery route">
-            <div class="tracking-map__roads" aria-hidden="true"></div>
-            <div class="live-chip"><span></span>Delivery progress</div>
-            <div class="route-arc" aria-hidden="true"></div>
-            <div class="route-pin route-pin--start" aria-hidden="true"><span></span></div>
-            <div class="route-vehicle" aria-hidden="true"><ion-icon name="truck-outline"></ion-icon></div>
-            <div class="route-pin route-pin--destination" aria-hidden="true"><span></span></div>
+          <section class="tracking-map" aria-label="Driver position relative to the delivery site">
+            @if (hasLiveLocation(x) && x.latitude != null && x.longitude != null) {
+              <app-mapbox-tracking-map [driverLatitude]="x.driverLatitude" [driverLongitude]="x.driverLongitude" [siteLatitude]="x.latitude" [siteLongitude]="x.longitude" />
+            } @else {
+              <div class="tracking-map__roads" aria-hidden="true"></div>
+            }
+            <div class="live-chip"><span></span>{{ hasLiveLocation(x) ? trackingFreshness(x) : trackingMessage(x) }}</div>
+            @if (!hasLiveLocation(x)) {
+              <div class="route-arc" aria-hidden="true"></div>
+              <div class="route-pin route-pin--start" aria-hidden="true"><span></span></div>
+              <div class="route-vehicle" aria-hidden="true"><ion-icon name="truck-outline"></ion-icon></div>
+              <div class="route-pin route-pin--destination" aria-hidden="true"><span></span></div>
+            }
 
             <div class="tracking-map__stats">
               <div class="map-stat">
@@ -65,7 +72,7 @@ import { LoaderComponent } from '../shared/loader.component';
             <span class="verified-panel__icon"><ion-icon name="shield-checkmark-outline"></ion-icon></span>
             <div>
               <strong>Verified driver updates</strong>
-              <p>Status changes come directly from verified driver workflow events. Live vehicle coordinates are not currently available.</p>
+              <p>{{ hasLiveLocation(x) ? 'The position plot and distance refresh every 15 seconds while your driver is en route.' : trackingMessage(x) }}</p>
             </div>
           </section>
         } @else if (error()) {
@@ -89,7 +96,7 @@ import { LoaderComponent } from '../shared/loader.component';
     .route-pin span{width:17px;height:17px;border:4px solid #fff;border-radius:50%}
     .route-pin--start{left:20%;top:49%;background:var(--wf-accent)}
     .route-pin--destination{right:15%;top:22%;background:var(--wf-primary);box-shadow:0 12px 30px color-mix(in srgb,var(--wf-primary) 48%,transparent)}
-    .route-vehicle{position:absolute;z-index:3;left:51%;top:37%;width:48px;height:48px;border:5px solid color-mix(in srgb,var(--wf-primary) 22%,var(--wf-surface));border-radius:50%;display:grid;place-items:center;background:var(--wf-surface);color:var(--wf-primary);box-shadow:0 8px 22px rgba(0,0,0,.25)}
+    .route-vehicle{position:absolute;z-index:3;left:51%;top:37%;width:48px;height:48px;transform:translate(-50%,-50%);border:5px solid color-mix(in srgb,var(--wf-primary) 22%,var(--wf-surface));border-radius:50%;display:grid;place-items:center;background:var(--wf-surface);color:var(--wf-primary);box-shadow:0 8px 22px rgba(0,0,0,.25)}
     .route-vehicle ion-icon{font-size:22px}
     .tracking-map__stats{position:absolute;z-index:4;left:16px;right:16px;bottom:16px;display:grid;grid-template-columns:1fr 1fr;border:1px solid color-mix(in srgb,var(--wf-border) 70%,transparent);border-radius:20px;background:color-mix(in srgb,var(--wf-surface) 88%,transparent);backdrop-filter:blur(16px);overflow:hidden}
     .map-stat{display:flex;align-items:center;gap:12px;padding:16px}.map-stat+ .map-stat{border-left:1px solid var(--wf-border)}
@@ -107,22 +114,64 @@ import { LoaderComponent } from '../shared/loader.component';
     @media(max-width:520px){.tracking-map{min-height:330px}.tracking-map__stats{left:10px;right:10px;bottom:10px}.map-stat{gap:8px;padding:12px}.map-stat__icon{width:36px;height:36px}.map-stat strong{font-size:17px}.status-hero{padding:18px;gap:12px}.driver-avatar{width:66px;height:66px}.driver-avatar span{width:50px;height:50px}.contact-panel{align-items:flex-start;flex-wrap:wrap}.contact-action{width:100%;margin:4px 0 0}.contact-panel__copy{width:calc(100% - 70px)}}
   `],
 })
-export class LiveTrackingPage {
+export class LiveTrackingPage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(CustomerApiService);
+  private pollTimer: ReturnType<typeof setInterval> | null = null;
   readonly job = signal<CustomerJob | null>(null);
   readonly error = signal('');
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    this.pollTimer = setInterval(() => this.load(true), 15_000);
+  }
 
-  load(): void {
+  ngOnDestroy(): void {
+    if (this.pollTimer) clearInterval(this.pollTimer);
+  }
+
+  load(silent = false): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
-    this.error.set('');
+    if (!silent) this.error.set('');
     this.api.getJob(id).subscribe({
-      next: x => this.job.set(x),
-      error: () => this.error.set('Delivery status could not be loaded. Check your connection and try again.'),
+      next: x => { this.job.set(x); this.error.set(''); },
+      error: () => { if (!silent || !this.job()) this.error.set('Delivery status could not be loaded. Check your connection and try again.'); },
     });
+  }
+
+  hasLiveLocation(job: CustomerJob): boolean {
+    return job.status === 'started' && job.driverLatitude != null && job.driverLongitude != null;
+  }
+
+  trackingMessage(job: CustomerJob): string {
+    if (job.status === 'started') return 'Waiting for the driver’s first GPS update.';
+    if (['arrived', 'equipment_verified', 'fueled', 'proof_submitted', 'completed'].includes(job.status)) return 'The driver has arrived; live location sharing has ended.';
+    return 'Live location begins when the driver starts this job.';
+  }
+
+  trackingFreshness(job: CustomerJob): string {
+    if (!job.locationRecordedAt) return 'Live driver location';
+    const seconds = Math.max(0, Math.round((Date.now() - new Date(job.locationRecordedAt).getTime()) / 1000));
+    return seconds > 90 ? `Location may be stale · ${Math.round(seconds / 60)} min ago` : `Live · updated ${seconds < 15 ? 'just now' : `${seconds} sec ago`}`;
+  }
+
+  driverLeft(job: CustomerJob): number { return this.plot(job).driverX; }
+  driverTop(job: CustomerJob): number { return this.plot(job).driverY; }
+  siteLeft(job: CustomerJob): number { return this.plot(job).siteX; }
+  siteTop(job: CustomerJob): number { return this.plot(job).siteY; }
+
+  private plot(job: CustomerJob): { driverX:number; driverY:number; siteX:number; siteY:number } {
+    if (!this.hasLiveLocation(job) || job.latitude == null || job.longitude == null) {
+      return { driverX:51, driverY:37, siteX:78, siteY:22 };
+    }
+    const latSpan = Math.max(Math.abs(job.driverLatitude! - job.latitude), .002);
+    const lonSpan = Math.max(Math.abs(job.driverLongitude! - job.longitude), .002);
+    const minLat = Math.min(job.driverLatitude!, job.latitude) - latSpan * .2;
+    const minLon = Math.min(job.driverLongitude!, job.longitude) - lonSpan * .2;
+    const toX = (longitude:number) => 15 + ((longitude - minLon) / (lonSpan * 1.4)) * 70;
+    const toY = (latitude:number) => 85 - ((latitude - minLat) / (latSpan * 1.4)) * 70;
+    return { driverX:toX(job.driverLongitude!), driverY:toY(job.driverLatitude!), siteX:toX(job.longitude), siteY:toY(job.latitude) };
   }
 
   initials(name?: string): string {

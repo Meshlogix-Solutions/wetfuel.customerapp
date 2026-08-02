@@ -25,6 +25,7 @@ export const routes: Routes = [
     { path:'equipment-form/:id',loadComponent:()=>import('./pages/equipment-form.page').then(m=>m.EquipmentFormPage) },
     { path:'locations',loadComponent:()=>import('./pages/locations.page').then(m=>m.LocationsPage) },
     { path:'location-form',loadComponent:()=>import('./pages/location-form.page').then(m=>m.LocationFormPage) },
+    { path:'location-form/:id',loadComponent:()=>import('./pages/location-form.page').then(m=>m.LocationFormPage) },
     { path:'deliveries',loadComponent:()=>import('./pages/deliveries.page').then(m=>m.DeliveriesPage) },
     { path:'delivery-detail/:id',loadComponent:()=>import('./pages/delivery-detail.page').then(m=>m.DeliveryDetailPage) },
     { path:'invoices',loadComponent:()=>import('./pages/invoices.page').then(m=>m.InvoicesPage) },
