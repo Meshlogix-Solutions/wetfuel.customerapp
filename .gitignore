@@ -23,6 +23,7 @@ yarn-error.log*
 
 # Environment
 .env
+/public/config.js
 
 # OS
 .DS_Store
