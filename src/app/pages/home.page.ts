@@ -11,12 +11,10 @@ import { deliveryStatusIcon } from '../shared/status';
 interface HeroDelivery { orderNumber:string; dayLabel:string; timeLabel:string; site:string; gallons:number; fuelType:string; trackRoute:(string|number)[]; scheduledAt:string; statusLabel:string; statusIcon:string; }
 
 @Component({selector:'app-home',standalone:true,imports:[CommonModule,RouterLink,IonButton,IonCard,IonCardContent,IonIcon,MobileShellComponent,LoaderComponent],template:`
-<wf-customer-shell [title]="profile()?.companyName || 'Your account'" [subtitle]="greeting() + ','" [showNav]="true" [refreshable]="true" (refreshRequested)="refreshHome($event)">
+<wf-customer-shell [title]="profile()?.companyName || 'Your account'" [subtitle]="greeting() + ','" [showNav]="true" [refreshable]="true" [accentTitle]="true" (refreshRequested)="refreshHome($event)">
 @if(loading()&&!hasLoaded()){<section class="screen-body"><wf-loader mode="section" message="Loading your dashboard..." /></section>}
-@else{<ng-container><main class="screen-body stack">
+@else{<ng-container><main class="screen-body stack home-dashboard">
 @if(error()){<div class="load-error"><span>{{error()}}</span><button type="button" (click)="load()">Retry</button></div>}
-
-<ion-button class="wf-button" expand="block" routerLink="/new-order"><ion-icon slot="start" name="add-outline"></ion-icon>Order fuel</ion-button>
 
 @if(openInvoiceCount()>0||attentionEquipment()){<section class="stack" style="gap:10px">
 @if(openInvoiceCount()>0){<ion-card class="wf-card warning-card compact" routerLink="/invoices"><ion-card-content class="row-between alert-row"><div class="row"><ion-icon name="alert-circle-outline"></ion-icon><span>{{openInvoiceCount()}} invoice{{openInvoiceCount()===1?'':'s'}} due · {{openInvoiceTotal()|currency}}</span></div><ion-icon name="chevron-forward-outline"></ion-icon></ion-card-content></ion-card>}
@@ -24,55 +22,137 @@ interface HeroDelivery { orderNumber:string; dayLabel:string; timeLabel:string; 
 </section>}
 
 @if(heroDelivery();as hero){<section><ion-card class="wf-card next-delivery-card"><ion-card-content>
-<span class="hero-eyebrow">Next Delivery</span>
-<div class="row-between" style="margin-top:6px">
-<span class="hero-status-pill"><ion-icon [name]="hero.statusIcon"></ion-icon>{{hero.statusLabel}}</span>
-<span class="hero-time-pill">{{heroTimeframe()}}</span>
+<div class="hero-top">
+  <div class="hero-eyebrow"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon><span>Next Delivery</span></div>
+  <span class="hero-time-pill">{{heroTimeframe()}}</span>
 </div>
-<div class="row" style="margin-top:14px"><div class="icon-tile hero-icon"><ion-icon name="car-sport-outline"></ion-icon></div><div class="grow"><strong class="hero-order">{{hero.orderNumber}}</strong><p class="hero-detail">{{hero.dayLabel}}, {{hero.timeLabel}}</p><p class="hero-detail">{{hero.site}}</p><p class="hero-detail">{{hero.gallons}} Gal · {{hero.fuelType}}</p></div></div>
+<div class="hero-body">
+  <div class="hero-truck" aria-hidden="true"><ion-icon name="truck-outline"></ion-icon></div>
+  <div class="grow">
+    <strong class="hero-order">{{hero.orderNumber}}</strong>
+    <div class="hero-meta">
+      <p><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon><span>{{hero.dayLabel}}, {{hero.timeLabel}}</span></p>
+      <p><ion-icon name="location-outline" aria-hidden="true"></ion-icon><span>{{hero.site}}</span></p>
+      <p><ion-icon name="water-outline" aria-hidden="true"></ion-icon><span>{{hero.gallons}} Gal · {{hero.fuelType}}</span></p>
+    </div>
+  </div>
+</div>
 <ion-button class="wf-button hero-track-btn" expand="block" [routerLink]="hero.trackRoute">Track Delivery<ion-icon slot="end" name="chevron-forward-outline"></ion-icon></ion-button>
 </ion-card-content></ion-card></section>}
 
-<section><div class="row-between"><h2 class="section-title">Overview</h2><button type="button" class="period-toggle" (click)="cycleStatsPeriod()">{{statsPeriodLabel()}}<ion-icon name="chevron-down-outline"></ion-icon></button></div>
-<div class="grid-2">
-<ion-card class="wf-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="list-outline"></ion-icon></div><span class="label">Total Orders</span><strong>{{totalOrders()}}</strong>@if(ordersDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}}{{abs(d)}}%</span>}</ion-card-content></ion-card>
-<ion-card class="wf-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="water-outline"></ion-icon></div><span class="label">Gallons Ordered</span><strong>{{gallonsOrdered()|number:'1.0-0'}}</strong>@if(gallonsDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}}{{abs(d)}}%</span>}</ion-card-content></ion-card>
-<ion-card class="wf-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="cash-outline"></ion-icon></div><span class="label">Amount Spent</span><strong>{{amountSpent()|currency}}</strong>@if(amountDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}}{{abs(d)}}%</span>}</ion-card-content></ion-card>
-<ion-card class="wf-card" routerLink="/orders"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="time-outline"></ion-icon></div><span class="label">Pending Orders</span><strong>{{pendingOrdersCount()}}</strong><span class="stat-link">View details<ion-icon name="chevron-forward-outline"></ion-icon></span></ion-card-content></ion-card>
-</div>
+<section>
+  <div class="row-between"><h2 class="section-title">Overview</h2><button type="button" class="period-toggle" (click)="cycleStatsPeriod()">{{statsPeriodLabel()}}<ion-icon name="chevron-down-outline"></ion-icon></button></div>
+  <div class="grid-2">
+    <ion-card class="wf-card overview-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="list-outline"></ion-icon></div><span class="label">Total Orders</span><strong>{{totalOrders()}}</strong>@if(ordersDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}} {{abs(d)}}% vs last month</span>}</ion-card-content></ion-card>
+    <ion-card class="wf-card overview-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="water-outline"></ion-icon></div><span class="label">Gallons Ordered</span><strong>{{gallonsOrdered()|number:'1.0-0'}}</strong>@if(gallonsDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}} {{abs(d)}}% vs last month</span>}</ion-card-content></ion-card>
+    <ion-card class="wf-card overview-card"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="cash-outline"></ion-icon></div><span class="label">Amount Spent</span><strong>{{amountSpent()|currency}}</strong>@if(amountDelta();as d){<span class="stat-delta" [class.up]="d>=0" [class.down]="d<0">{{d>=0?'↑':'↓'}} {{abs(d)}}% vs last month</span>}</ion-card-content></ion-card>
+    <ion-card class="wf-card overview-card" routerLink="/orders"><ion-card-content class="stat-tile"><div class="icon-tile"><ion-icon name="time-outline"></ion-icon></div><span class="label">Pending Orders</span><strong>{{pendingOrdersCount()}}</strong><span class="stat-link">View details <ion-icon name="chevron-forward-outline"></ion-icon></span></ion-card-content></ion-card>
+  </div>
+</section>
+
+<section>
+  <ion-card class="wf-card promo-card">
+    <ion-card-content class="promo-row">
+      <div class="promo-shield" aria-hidden="true"><ion-icon name="shield-checkmark-outline"></ion-icon></div>
+      <div class="promo-copy grow">
+        <strong>Reliable Deliveries, On Time</strong>
+        <p>Track your deliveries in real-time and stay updated every step of the way.</p>
+      </div>
+      <div class="promo-truck" aria-hidden="true"><ion-icon name="truck-outline"></ion-icon></div>
+    </ion-card-content>
+  </ion-card>
 </section>
 
 <section><div class="row-between"><h2 class="section-title">Recent Orders</h2><a routerLink="/orders" class="caption">View All</a></div><div class="stack" style="gap:10px">
-@for(order of recentOrders();track order.id){<ion-card class="wf-card compact" [routerLink]="['/order-status',order.id]"><ion-card-content class="row-between">
+@for(order of recentOrders();track order.id){<ion-card class="wf-card compact overview-card" [routerLink]="['/order-status',order.id]"><ion-card-content class="row-between">
 <div><strong>{{order.orderNumber}}</strong><p class="caption" style="margin:4px 0 0">{{order.requestedDate|date:'mediumDate'}} · {{order.deliveryWindow}}</p></div>
-<div class="text-right"><strong>{{order.requestedGallons}} Gal</strong><p class="caption" style="margin:4px 0 0">{{order.estimatedTotal|currency}}</p><span class="status-text" [class]="order.statusTone">{{order.statusLabel}}</span></div>
+<div class="text-right"><strong>{{order.requestedGallons}} Gal</strong><p class="caption" style="margin:4px 0 0">{{order.estimatedTotal|currency}}</p><span class="status-text" [ngClass]="order.statusTone || 'info'">{{order.statusLabel || order.status}}</span></div>
 </ion-card-content></ion-card>}
 @empty{<ion-card class="wf-card soft-card text-center"><ion-card-content><strong>No orders yet</strong><p class="caption">Place your first fuel order to see it here.</p></ion-card-content></ion-card>}
 </div></section>
 </main>
+
+<a class="new-order-fab" routerLink="/new-order" aria-label="New Order">
+  <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+  <span class="fab-label">New Order</span>
+</a>
 </ng-container>}
 </wf-customer-shell>`,
 styles:[`
-  .next-delivery-card{--background:transparent;background:transparent;color:var(--wf-text)}
-  .next-delivery-card ion-card-content{color:var(--wf-text)}
-  .hero-eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
-  .hero-status-pill{display:inline-flex;align-items:center;gap:6px;background:var(--wf-primary-soft);color:var(--wf-primary);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}
-  .hero-status-pill ion-icon{font-size:15px}
-  .hero-time-pill{background:var(--wf-primary-soft);color:var(--wf-primary);padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800;flex:0 0 auto}
-  .hero-icon{background:var(--wf-primary-soft);color:var(--wf-primary)}
-  .hero-order{font-size:19px;display:block}
-  .hero-detail{margin:3px 0 0;font-size:13px;color:var(--wf-muted)}
-  .hero-track-btn{margin-top:16px}
-  .period-toggle{display:flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--wf-muted);font-size:13px;font-weight:700;cursor:pointer;padding:0}
+  .home-dashboard{padding-bottom:calc(var(--wf-screen-bottom-padding, 110px) + 24px)}
+
+  .next-delivery-card{
+    --background:var(--wf-surface);
+    background:var(--wf-surface);
+    color:var(--wf-text);
+    border-color:color-mix(in srgb, var(--wf-primary) 42%, var(--wf-border));
+  }
+  .next-delivery-card ion-card-content{color:var(--wf-text);display:grid;gap:16px}
+  .hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .hero-eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--wf-primary);
+  }
+  .hero-eyebrow ion-icon{font-size:16px;color:var(--wf-primary)}
+  .hero-time-pill{
+    background:var(--wf-primary);color:#fff;padding:5px 12px;border-radius:999px;
+    font-size:12px;font-weight:800;flex:0 0 auto;line-height:1.2;
+  }
+  .hero-body{display:flex;align-items:flex-start;gap:14px}
+  .hero-truck{
+    width:56px;height:56px;border-radius:50%;flex:0 0 auto;
+    display:grid;place-items:center;
+    background:var(--wf-primary-soft);color:var(--wf-primary);
+    border:1px solid color-mix(in srgb, var(--wf-primary) 35%, transparent);
+  }
+  .hero-truck ion-icon{font-size:26px}
+  .hero-order{font-size:18px;display:block;letter-spacing:-.02em;line-height:1.2}
+  .hero-meta{display:grid;gap:7px;margin-top:10px}
+  .hero-meta p{
+    margin:0;display:flex;align-items:flex-start;gap:8px;
+    font-size:13px;color:var(--wf-muted);line-height:1.35;
+  }
+  .hero-meta ion-icon{font-size:15px;color:var(--wf-primary);flex:0 0 auto;margin-top:1px}
+  .hero-track-btn{margin:0}
+
+  .overview-card{
+    --background:var(--wf-surface);
+    background:var(--wf-surface);
+  }
+  .period-toggle{
+    display:flex;align-items:center;gap:4px;border:0;background:transparent;
+    color:var(--wf-muted);font-size:13px;font-weight:700;cursor:pointer;padding:0;
+  }
   .period-toggle ion-icon{font-size:15px}
   .stat-tile{display:grid;gap:8px;align-content:start;min-height:118px}
   .stat-tile .label{font-size:13px;color:var(--wf-muted)}
-  .stat-tile strong{font-size:24px;line-height:1}
+  .stat-tile strong{font-size:24px;line-height:1;letter-spacing:-.03em}
+  .stat-tile .icon-tile{width:40px;height:40px;border-radius:12px;font-size:18px}
+  .stat-tile .icon-tile ion-icon{font-size:20px}
   .stat-delta{font-size:12px;font-weight:800}
   .stat-delta.up{color:var(--wf-success)}
   .stat-delta.down{color:var(--wf-danger)}
   .stat-link{font-size:12px;font-weight:800;color:var(--wf-primary);display:inline-flex;align-items:center;gap:2px}
   .stat-link ion-icon{font-size:14px}
+
+  .promo-card{
+    --background:var(--wf-surface);
+    background:var(--wf-surface);
+  }
+  .promo-row{display:flex;align-items:center;gap:12px}
+  .promo-shield{
+    width:44px;height:44px;border-radius:50%;flex:0 0 auto;
+    display:grid;place-items:center;background:var(--wf-primary-soft);color:var(--wf-primary);
+  }
+  .promo-shield ion-icon{font-size:22px}
+  .promo-copy strong{display:block;font-size:14px;letter-spacing:-.02em}
+  .promo-copy p{margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--wf-muted)}
+  .promo-truck{
+    width:52px;height:40px;flex:0 0 auto;display:grid;place-items:center;
+    color:var(--wf-primary);opacity:.9;
+  }
+  .promo-truck ion-icon{font-size:34px}
+
   .text-right{text-align:right}
   .status-text{display:block;margin-top:4px;font-size:12px;font-weight:800}
   .status-text.info{color:var(--wf-muted)}
@@ -80,6 +160,40 @@ styles:[`
   .status-text.warning{color:var(--wf-warning)}
   .status-text.danger{color:var(--wf-danger)}
   .alert-row ion-icon:first-child{color:var(--wf-warning);font-size:19px}
+
+  .new-order-fab{
+    position:fixed;z-index:28;
+    right:max(16px, env(safe-area-inset-right));
+    bottom:calc(max(10px, env(safe-area-inset-bottom)) + 88px);
+    height:56px;min-width:56px;padding:0 16px;
+    border-radius:999px;display:inline-flex;align-items:center;justify-content:center;gap:0;
+    background:var(--wf-primary);color:#fff;text-decoration:none;
+    box-shadow:0 10px 28px rgba(227,18,30,.45);
+    transition:padding .22s ease, gap .22s ease, box-shadow .22s ease, transform .15s ease;
+    overflow:hidden;
+  }
+  .new-order-fab ion-icon{font-size:26px;flex:0 0 auto}
+  .fab-label{
+    max-width:0;opacity:0;overflow:hidden;white-space:nowrap;
+    font-size:14px;font-weight:800;letter-spacing:-.01em;
+    transition:max-width .22s ease, opacity .18s ease;
+  }
+  .new-order-fab:hover,
+  .new-order-fab:focus-visible,
+  .new-order-fab:focus{
+    padding:0 18px;gap:8px;outline:none;
+    box-shadow:0 14px 32px rgba(227,18,30,.55);
+  }
+  .new-order-fab:hover .fab-label,
+  .new-order-fab:focus-visible .fab-label,
+  .new-order-fab:focus .fab-label{
+    max-width:120px;opacity:1;
+  }
+  .new-order-fab:active{transform:scale(.97)}
+  @media (hover: none){
+    .new-order-fab:active{padding:0 18px;gap:8px}
+    .new-order-fab:active .fab-label{max-width:120px;opacity:1}
+  }
 `]})
 export class HomePage {
   private readonly api=inject(CustomerApiService);
@@ -93,7 +207,7 @@ export class HomePage {
   readonly error=signal('');
   readonly statsPeriod=signal<'month'|'all'>('month');
   readonly abs=Math.abs;
-  readonly greeting=computed(()=>{const h=new Date().getHours();return h<12?'Good morning':h<18?'Good afternoon':'Good evening';});
+  readonly greeting=computed(()=>{const h=new Date().getHours();return h<12?'Good Morning':h<18?'Good Afternoon':'Good Evening';});
   readonly activeJob=computed(()=>this.jobs().find(x=>x.statusGroup==='active')??null);
   readonly nextOrder=computed(()=>{
     const upcoming=this.orders().filter(x=>x.statusGroup!=='delivered'&&x.statusGroup!=='cancelled');

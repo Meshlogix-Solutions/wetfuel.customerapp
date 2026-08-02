@@ -19,7 +19,15 @@ export interface RefreshRequest { complete: () => void; }
         <header class="topbar">
           <div class="topbar-left">
             <a *ngIf="backRoute" class="top-icon" [routerLink]="backRoute" aria-label="Back"><ion-icon name="arrow-back-outline"></ion-icon></a>
-            <div><div class="eyebrow" *ngIf="subtitle">{{ subtitle }}</div><h1>{{ title }}</h1></div>
+            <div>
+              <div class="eyebrow" *ngIf="subtitle">{{ subtitle }}</div>
+              <h1>
+                <ng-container *ngIf="accentTitle; else plainTitle">
+                  <ng-container *ngIf="titleParts.lead as lead">{{ lead }} </ng-container><span class="title-accent">{{ titleParts.accent }}</span>
+                </ng-container>
+                <ng-template #plainTitle>{{ title }}</ng-template>
+              </h1>
+            </div>
           </div>
           <div class="topbar-actions">
             <button *ngIf="refreshable" type="button" class="top-icon refresh-action" [class.refreshing]="refreshing()" [disabled]="refreshing()" (click)="requestHeaderRefresh()" aria-label="Refresh page">
@@ -50,7 +58,7 @@ export interface RefreshRequest { complete: () => void; }
         <ng-content></ng-content>
         <div class="fixed-footer" *ngIf="fixedFooter" [class.with-nav]="showNav"><ng-content select="[fixedFooterContent]"></ng-content></div>
         <nav class="bottom-nav" *ngIf="showNav">
-          <a routerLink="/home" routerLinkActive="active"><ion-icon name="home-outline"></ion-icon><span>Dashboard</span></a>
+          <a routerLink="/home" routerLinkActive="active"><ion-icon name="home-outline"></ion-icon><span>Home</span></a>
           <a routerLink="/orders" routerLinkActive="active"><ion-icon name="receipt-outline"></ion-icon><span>Orders</span></a>
           <a routerLink="/locations" routerLinkActive="active"><ion-icon name="business-outline"></ion-icon><span>Sites</span></a>
           <a routerLink="/equipment" routerLinkActive="active"><ion-icon name="cube-outline"></ion-icon><span>Equipment</span></a>
@@ -64,7 +72,7 @@ export interface RefreshRequest { complete: () => void; }
     :host{display:contents}
     .app-frame{min-height:100%;background:var(--wf-background)}
     .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:max(14px,env(safe-area-inset-top)) 16px 12px;background:color-mix(in srgb, var(--wf-surface) 94%, transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--wf-border)}
-    .topbar-left,.topbar-actions{display:flex;align-items:center;gap:10px}.topbar h1{margin:1px 0 0;font-size:22px;letter-spacing:-.035em;color:var(--wf-text)}.eyebrow{color:var(--wf-muted);font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}
+    .topbar-left,.topbar-actions{display:flex;align-items:center;gap:10px}.topbar h1{margin:1px 0 0;font-size:22px;letter-spacing:-.035em;color:var(--wf-text);line-height:1.15}.topbar h1 .title-accent{color:var(--wf-primary)}.eyebrow{color:var(--wf-muted);font-size:13px;font-weight:600;text-transform:none;letter-spacing:0}
     .top-icon{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-primary);text-decoration:none;flex:0 0 auto}.top-icon ion-icon{font-size:21px}
     .notification-badge{position:absolute;right:-5px;top:-6px;min-width:19px;height:19px;padding:0 5px;display:grid;place-items:center;border-radius:10px;background:var(--wf-danger,#d92d20);color:#fff;border:2px solid var(--wf-surface);font-size:10px;font-weight:900;line-height:1}
     button.top-icon{padding:0;cursor:pointer}.refresh-action svg{width:20px;height:20px}.refresh-action.refreshing svg{animation:refresh-spin .8s linear infinite}@keyframes refresh-spin{to{transform:rotate(360deg)}}
@@ -93,6 +101,12 @@ export class MobileShellComponent {
 
 
   @Input() refreshable=false;
+  @Input() accentTitle=false;
+  get titleParts():{lead:string;accent:string}{
+    const parts=this.title.trim().split(/\s+/).filter(Boolean);
+    if(parts.length<=1)return {lead:'',accent:this.title||'Your account'};
+    return {lead:parts.slice(0,-1).join(' '),accent:parts[parts.length-1]};
+  }
   get bottomPadding():string{
     if(this.showNav)return this.fixedFooter?'196px':'110px';
     return this.fixedFooter?'100px':'28px';

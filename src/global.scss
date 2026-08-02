@@ -71,7 +71,8 @@ ion-card.wf-card.compact ion-card-content { padding: 13px; }
 .metric .label { font-size: 13px; color: var(--wf-muted); }
 
 .icon-tile { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--wf-primary-soft); font-size: 22px; flex: 0 0 auto; color: var(--wf-primary); }
-.icon-tile ion-icon { font-size: 23px; }
+.icon-tile ion-icon { font-size: 23px; width: 1em; height: 1em; display: block; }
+ion-icon { visibility: visible; }
 ion-item ion-icon[slot="start"] { color: var(--wf-primary); }
 .avatar { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--wf-primary-soft); color: var(--wf-primary); font-weight: 900; }
 .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--wf-success); display: inline-block; }
@@ -80,8 +81,12 @@ ion-item ion-icon[slot="start"] { color: var(--wf-primary); }
 .pill.success { color: #1c7e52; background: #eaf8f1; border-color: #c9ead9; }
 .pill.warning { color: #805600; background: #fff5dc; border-color: #f3dfaa; }
 .pill.danger { color: #b23535; background: #ffeded; border-color: #f1caca; }
-.pill.info { color: var(--wf-muted); background: var(--wf-accent-surface); border-color: var(--wf-border); }
+.pill.info,
+.pill.neutral { color: var(--wf-text); background: var(--wf-accent-surface); border-color: var(--wf-border); }
 .pill.dark { color: #fff; background: var(--wf-primary); border-color: var(--wf-primary); }
+html.dark .pill.success { color: #7ddea0; background: rgba(47, 159, 61, 0.18); border-color: rgba(47, 159, 61, 0.35); }
+html.dark .pill.warning { color: #f0c75a; background: rgba(217, 165, 20, 0.18); border-color: rgba(217, 165, 20, 0.35); }
+html.dark .pill.danger { color: #ff8f8f; background: rgba(227, 18, 30, 0.18); border-color: rgba(227, 18, 30, 0.35); }
 .chip { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 7px 10px; font-size: 12px; font-weight: 800; border: 1px solid var(--wf-border); background: var(--wf-surface); color: var(--wf-text); }
 .chip.active { background: var(--wf-primary); color: #fff; border-color: var(--wf-primary); }
 
