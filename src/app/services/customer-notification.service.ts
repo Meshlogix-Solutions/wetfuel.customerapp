@@ -26,6 +26,7 @@ export class CustomerNotificationService {
     this.readIds = new Set(this.restoreReadIds());
     router.events.pipe(filter(event => event instanceof NavigationEnd)).subscribe(() => void this.refresh());
     void this.refresh();
+    window.setInterval(() => void this.refresh(), 30_000);
   }
 
   async refresh(): Promise<void> {
@@ -41,6 +42,17 @@ export class CustomerNotificationService {
         equipment: this.api.getEquipment(),
       }));
       const items: CustomerNotification[] = [
+        ...jobs.filter(job => !!job.siteTerritoryEnteredAt && ['started', 'arrived', 'equipment_verified'].includes(job.status)).map(job => {
+          const id = `job-site-entry:${job.id}:${job.siteTerritoryEnteredAt}`;
+          return {
+            id,
+            kind: 'delivery' as const,
+            title: 'Driver is arriving at your site',
+            detail: `${job.jobNumber} Â· ${job.siteName}`,
+            route: `/live-tracking/${job.id}`,
+            unread: !this.readIds.has(id),
+          };
+        }),
         ...jobs.filter(job => ['started', 'arrived', 'equipment_verified'].includes(job.status)).map(job => {
           const id = `job:${job.id}`;
           return {

@@ -9,16 +9,18 @@ import { ToastService } from '../services/toast.service';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 import { CustomerMapboxTerritoryEditorComponent, CustomerTerritorySelection } from '../shared/mapbox-territory-editor.component';
 import { US_STATES, usStateCode } from '../data/us-states';
-@Component({selector:'app-location-form',standalone:true,imports:[FormsModule,IonButton,IonCard,IonCardContent,IonInput,IonItem,IonSelect,IonSelectOption,IonToggle,MobileShellComponent,CustomerMapboxTerritoryEditorComponent],template:`
+import { MapboxAddressAutocompleteComponent, MapboxAddressSelection } from '../shared/mapbox-address-autocomplete.component';
+@Component({selector:'app-location-form',standalone:true,imports:[FormsModule,IonButton,IonCard,IonCardContent,IonInput,IonItem,IonSelect,IonSelectOption,IonToggle,MobileShellComponent,CustomerMapboxTerritoryEditorComponent,MapboxAddressAutocompleteComponent],template:`
 <wf-customer-shell [title]="id?'Edit site':'Add site'" [subtitle]="id?'Update site details and territory':(step()===1?'Step 1 of 2 · Site details':'Step 2 of 2 · Equipment (optional)')" backRoute="/locations" [showNav]="true"><main class="screen-body stack">
 
 @if(step()===1){
 <ion-card class="wf-card form-card"><ion-card-content class="stack">
 <ion-item><ion-input label="Location name" labelPlacement="stacked" [(ngModel)]="siteForm.name" placeholder="e.g. South Distribution Center"></ion-input></ion-item>
-<ion-item><ion-input label="Street address" labelPlacement="stacked" [(ngModel)]="siteForm.address"></ion-input></ion-item>
+<app-mapbox-address-autocomplete [value]="siteForm.address" (valueChange)="addressChanged($event)" (locationSelected)="applyAddress($event)" />
 <div class="grid-2"><ion-item><ion-input label="City" labelPlacement="stacked" [(ngModel)]="siteForm.city"></ion-input></ion-item><ion-item><ion-select label="State" labelPlacement="stacked" placeholder="Select state" [(ngModel)]="siteForm.state">@for(state of states;track state.code){<ion-select-option [value]="state.code">{{state.name}}</ion-select-option>}</ion-select></ion-item></div>
 <ion-item><ion-input label="ZIP code" labelPlacement="stacked" [(ngModel)]="siteForm.zipCode"></ion-input></ion-item>
-@if(!loadingSite()){<app-mapbox-territory-editor [territoryGeoJson]="siteForm.territoryGeoJson" (territoryChanged)="applyTerritory($event)" />}
+@if(siteForm.latitude!=null&&siteForm.longitude!=null){<p class="caption" style="margin:0 2px">Exact site point: {{siteForm.latitude.toFixed(6)}}, {{siteForm.longitude.toFixed(6)}}</p>}
+@if(!loadingSite()){<app-mapbox-territory-editor [territoryGeoJson]="siteForm.territoryGeoJson" [siteLatitude]="siteForm.latitude" [siteLongitude]="siteForm.longitude" (territoryChanged)="applyTerritory($event)" />}
 <ion-item><ion-input label="On-site contact" labelPlacement="stacked" [(ngModel)]="siteForm.contactName"></ion-input></ion-item>
 <ion-item><ion-input label="Contact phone" labelPlacement="stacked" type="tel" [(ngModel)]="siteForm.contactPhone"></ion-input></ion-item>
 <ion-toggle [(ngModel)]="siteForm.isDefault">Make this my primary location</ion-toggle>
@@ -50,7 +52,7 @@ export class LocationFormPage{
   readonly states=US_STATES;
   readonly step=signal<1|2>(1);
   readonly createdSite=signal<CustomerSite|null>(null);
-  siteForm={name:'',address:'',city:'',state:'',zipCode:'',territoryGeoJson:'',contactName:'',contactPhone:'',isDefault:false};
+  siteForm={name:'',address:'',city:'',state:'',zipCode:'',latitude:null as number|null,longitude:null as number|null,territoryGeoJson:'',contactName:'',contactPhone:'',isDefault:false};
   equipmentForm={name:'',type:'tank',fuelType:'diesel',capacityGallons:null as number|null,estimatedLevelPercent:null as number|null};
 
   constructor(){
@@ -59,7 +61,7 @@ export class LocationFormPage{
         const site=sites.find(x=>x.id===this.id);
         if(!site){void this.toast.error('The site could not be found.');void this.router.navigateByUrl('/locations');return;}
         this.siteForm={name:site.name,address:site.address,city:site.city,state:usStateCode(site.state),zipCode:site.zipCode,
-          territoryGeoJson:site.territoryGeoJson??'',contactName:site.contactName??'',contactPhone:site.contactPhone??'',isDefault:site.isDefault};
+          latitude:site.latitude??null,longitude:site.longitude??null,territoryGeoJson:site.territoryGeoJson??'',contactName:site.contactName??'',contactPhone:site.contactPhone??'',isDefault:site.isDefault};
         this.loadingSite.set(false);
       },
       error:()=>{this.loadingSite.set(false);void this.toast.error('The site could not be loaded.');},
@@ -67,10 +69,10 @@ export class LocationFormPage{
   }
 
   async saveSite():Promise<void>{
-    if(!this.siteForm.name.trim()||!this.siteForm.address.trim()||!this.siteForm.city.trim()||this.siteForm.state.trim().length!==2||!this.siteForm.zipCode.trim()||!this.siteForm.territoryGeoJson){void this.toast.error('Complete the site details and draw the delivery territory.');return;}
+    if(!this.siteForm.name.trim()||!this.siteForm.address.trim()||!this.siteForm.city.trim()||this.siteForm.state.trim().length!==2||!this.siteForm.zipCode.trim()||this.siteForm.latitude==null||this.siteForm.longitude==null||!this.siteForm.territoryGeoJson){void this.toast.error('Select an address suggestion and draw the delivery territory.');return;}
     this.saving=true;
     try{
-      const request={...this.siteForm,contactName:this.siteForm.contactName||undefined,contactPhone:this.siteForm.contactPhone||undefined};
+      const request={...this.siteForm,latitude:this.siteForm.latitude,longitude:this.siteForm.longitude,contactName:this.siteForm.contactName||undefined,contactPhone:this.siteForm.contactPhone||undefined};
       const site=await firstValueFrom(this.id?this.api.updateSite(this.id,request):this.api.addSite(request));
       this.createdSite.set(site);
       if(this.id){void this.toast.success('Site territory updated.');void this.router.navigateByUrl(this.returnUrl);}
@@ -83,6 +85,8 @@ export class LocationFormPage{
   }
 
   applyTerritory(value:CustomerTerritorySelection):void{this.siteForm.territoryGeoJson=value.geoJson;}
+  addressChanged(value:string):void{if(value!==this.siteForm.address){this.siteForm.address=value;this.siteForm.latitude=null;this.siteForm.longitude=null;}}
+  applyAddress(value:MapboxAddressSelection):void{this.siteForm.address=value.address;this.siteForm.city=value.city;this.siteForm.state=usStateCode(value.state);this.siteForm.zipCode=value.zipCode;this.siteForm.latitude=value.latitude;this.siteForm.longitude=value.longitude;}
 
   async saveEquipment():Promise<void>{
     const site=this.createdSite();

@@ -6,6 +6,8 @@ import { CustomerApiService, CustomerJob } from '../services/customer-api.servic
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 import { LoaderComponent } from '../shared/loader.component';
 import { MapboxTrackingMapComponent } from '../shared/mapbox-tracking-map.component';
+import { ToastService } from '../services/toast.service';
+import { CustomerNotificationService } from '../services/customer-notification.service';
 
 @Component({
   selector: 'app-live-tracking',
@@ -40,6 +42,10 @@ import { MapboxTrackingMapComponent } from '../shared/mapbox-tracking-map.compon
               </div>
             </div>
           </section>
+
+          @if (x.siteTerritoryEnteredAt) {
+            <section class="territory-alert"><ion-icon name="location-outline"></ion-icon><div><strong>Your driver is reaching the site</strong><p>The delivery vehicle entered {{ x.siteName }}'s territory at {{ x.siteTerritoryEnteredAt | date:'shortTime' }}.</p></div></section>
+          }
 
           <section class="status-hero">
             <div class="status-hero__copy">
@@ -85,6 +91,7 @@ import { MapboxTrackingMapComponent } from '../shared/mapbox-tracking-map.compon
   `,
   styles: [`
     .tracking-body{display:grid;gap:18px;max-width:760px}
+    .territory-alert{display:flex;align-items:flex-start;gap:13px;padding:17px 18px;border:1px solid #16a34a;border-radius:20px;background:color-mix(in srgb,#16a34a 12%,var(--wf-surface));color:var(--wf-text)}.territory-alert ion-icon{font-size:25px;color:#16a34a;flex:0 0 auto}.territory-alert strong{display:block}.territory-alert p{margin:4px 0 0;color:var(--wf-muted);font-size:13px}
     .tracking-map{position:relative;min-height:360px;overflow:hidden;border:1px solid color-mix(in srgb,var(--wf-border) 75%,var(--wf-primary));border-radius:26px;background:linear-gradient(145deg,color-mix(in srgb,var(--wf-surface) 88%,#071016),color-mix(in srgb,var(--wf-background) 82%,#09141c));box-shadow:0 18px 42px rgba(0,0,0,.16);isolation:isolate}
     .tracking-map::after{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 78% 30%,var(--wf-primary-soft),transparent 28%),linear-gradient(to bottom,transparent 45%,rgba(0,0,0,.18))}
     .tracking-map__roads{position:absolute;inset:-40px;z-index:-2;opacity:.3;background:linear-gradient(38deg,transparent 46%,var(--wf-border) 47%,var(--wf-border) 49%,transparent 50%) 0 0/120px 110px,linear-gradient(-42deg,transparent 46%,var(--wf-border) 47%,var(--wf-border) 49%,transparent 50%) 20px 15px/155px 130px}
@@ -117,7 +124,10 @@ import { MapboxTrackingMapComponent } from '../shared/mapbox-tracking-map.compon
 export class LiveTrackingPage implements OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(CustomerApiService);
+  private readonly toast = inject(ToastService);
+  private readonly notifications = inject(CustomerNotificationService);
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private notifiedSiteEntryAt = '';
   readonly job = signal<CustomerJob | null>(null);
   readonly error = signal('');
 
@@ -135,7 +145,7 @@ export class LiveTrackingPage implements OnDestroy {
     if (!id) return;
     if (!silent) this.error.set('');
     this.api.getJob(id).subscribe({
-      next: x => { this.job.set(x); this.error.set(''); },
+      next: x => { if (x.siteTerritoryEnteredAt && x.siteTerritoryEnteredAt !== this.notifiedSiteEntryAt) { this.notifiedSiteEntryAt = x.siteTerritoryEnteredAt; void this.toast.success('Your driver is arriving at your site.'); void this.notifications.refresh(); } this.job.set(x); this.error.set(''); },
       error: () => { if (!silent || !this.job()) this.error.set('Delivery status could not be loaded. Check your connection and try again.'); },
     });
   }
