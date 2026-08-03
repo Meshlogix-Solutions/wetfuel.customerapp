@@ -7,7 +7,6 @@ import { CustomerApiService, CustomerProfile } from '../services/customer-api.se
 import { CustomerAuthService } from '../services/customer-auth.service';
 import { MobileShellComponent } from '../shared/mobile-shell.component';
 import { LoaderComponent } from '../shared/loader.component';
-import { MobilePushService } from '../services/mobile-push.service';
 @Component({selector:'app-profile',standalone:true,imports:[CommonModule,RouterLink,IonButton,IonCard,IonCardContent,IonIcon,IonItem,IonLabel,IonList,MobileShellComponent,LoaderComponent],template:`
 <wf-customer-shell title="Settings" [subtitle]="profile()?.companyName || 'Customer'" [showNav]="true">
 @if(loading()&&!hasLoaded()){<section class="screen-body"><wf-loader mode="section" message="Loading account..." /></section>}
@@ -33,7 +32,6 @@ styles:[`
 export class ProfilePage{
   private readonly api=inject(CustomerApiService);
   private readonly auth=inject(CustomerAuthService);
-  private readonly mobilePush=inject(MobilePushService);
   readonly profile=signal<CustomerProfile|null>(null);
   readonly siteCount=signal(0);
   readonly loading=signal(true);
@@ -49,6 +47,5 @@ export class ProfilePage{
       this.error.set('Your account could not be loaded. Check your connection and try again.');this.loading.set(false);
     });
   }
-  logout():void{void this.signOut();}
-  private async signOut():Promise<void>{try{await this.mobilePush.unregisterCurrentDevice();}finally{await this.auth.logout();}}
+  logout():void{void this.auth.logout();}
 }

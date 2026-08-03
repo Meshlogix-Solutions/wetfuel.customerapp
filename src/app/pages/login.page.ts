@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { IonButton, IonCard, IonCardContent, IonContent, IonIcon, IonInput, IonItem } from '@ionic/angular/standalone';
 import { CustomerAuthService } from '../services/customer-auth.service';
 import { ToastService } from '../services/toast.service';
-import { MobilePushService } from '../services/mobile-push.service';
 
 @Component({
   selector: 'app-login',
@@ -35,7 +34,6 @@ export class LoginPage {
   private readonly auth = inject(CustomerAuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
-  private readonly mobilePush = inject(MobilePushService);
 
   email = '';
   password = '';
@@ -50,7 +48,6 @@ export class LoginPage {
     this.loading = true;
     try {
       await this.auth.login(this.email, this.password);
-      await this.mobilePush.registerCurrentDevice().catch(() => undefined);
       await this.router.navigateByUrl('/home');
     } catch (err: unknown) {
       const failure = err as { status?: number; error?: { message?: string }; message?: string };

@@ -4,14 +4,11 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { MobilePushService } from './services/mobile-push.service';
 import { arrowBackOutline, homeOutline, notificationsOutline, personOutline, receiptOutline, cubeOutline, locationOutline, chevronForwardOutline, calendarOutline, timeOutline, carOutline, callOutline, addOutline, cardOutline, documentTextOutline, cameraOutline, qrCodeOutline, businessOutline, settingsOutline, logOutOutline, checkmarkCircleOutline, warningOutline, navigateOutline, downloadOutline, mailOutline, informationCircleOutline, searchOutline, filterOutline, pencilOutline, trashOutline, shieldCheckmarkOutline, walletOutline, carSportOutline, listOutline, waterOutline, cashOutline, chevronDownOutline, alertCircleOutline, checkmarkDoneOutline, addCircleOutline, eyeOutline, eyeOffOutline, closeCircleOutline, gridOutline, ellipseOutline } from 'ionicons/icons';
 @Component({ selector:'app-root', standalone:true, imports:[IonApp,IonRouterOutlet], template:'<ion-app><ion-router-outlet></ion-router-outlet></ion-app>' })
 export class AppComponent {
   private readonly router=inject(Router);
-  private readonly mobilePush=inject(MobilePushService);
   constructor(){
-    void this.mobilePush.initialize().catch(() => undefined);
     if(Capacitor.isNativePlatform()){
       App.addListener('backButton',()=>{
         const path=this.router.url.split('?')[0];

@@ -18,8 +18,6 @@ export interface CustomerInvoiceLineItem {id:string;description:string;fuelType:
 export interface CustomerInvoice {id:string;invoiceNumber:string;customerId:string;customerName:string;status:string;statusLabel:string;statusTone:string;statusGroup:string;canPay:boolean;isOpen:boolean;isOverdue:boolean;issueDate?:string;dueDate?:string;paidDate?:string;subtotal:number;taxTotal:number;total:number;notes?:string;lineItems:CustomerInvoiceLineItem[];createdAt:string;updatedAt:string;}
 @Injectable({providedIn:'root'}) export class CustomerApiService {
   private readonly http=inject(HttpClient);
-  registerPushDevice(token:string,platform:'android'|'ios'):Observable<void>{return this.http.post<void>(`${environment.apiUrl}/customer/app/push-devices`,{token,platform});}
-  unregisterPushDevice(token:string,platform:'android'|'ios'):Observable<void>{return this.http.request<void>('DELETE',`${environment.apiUrl}/customer/app/push-devices`,{body:{token,platform}});}
   getCurrentCustomer():Observable<CustomerProfile>{return this.http.get<ApiResponse<CustomerProfile>>(`${environment.apiUrl}/customer/me`).pipe(map(r=>enrichProfile(r.data)));}
   getSites():Observable<CustomerSite[]>{return this.http.get<ApiResponse<CustomerSite[]>>(`${environment.apiUrl}/customer/app/sites`).pipe(map(r=>r.data));}
   addSite(request:AddSiteRequest):Observable<CustomerSite>{return this.http.post<ApiResponse<CustomerSite>>(`${environment.apiUrl}/customer/app/sites`,request).pipe(map(r=>r.data));}

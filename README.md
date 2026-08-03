@@ -30,4 +30,4 @@ Open `http://localhost:4200`.
 
 ## Production integrations still required
 
-This package is a UI prototype with mock data. Connect authentication, backend APIs, Google Maps, push notifications, live GPS, camera/QR features, QuickBooks invoice data, and native Capacitor plugins during implementation.
+This package is a UI prototype with mock data. Connect authentication, backend APIs, Google Maps, live GPS, camera/QR features, QuickBooks invoice data, and native Capacitor plugins during implementation.
