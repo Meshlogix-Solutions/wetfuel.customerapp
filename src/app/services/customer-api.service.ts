@@ -16,6 +16,7 @@ export interface CustomerOrderEstimate {pricePerGallon:number;estimatedSubtotal:
 export interface CreateCustomerOrderRequest extends CustomerOrderEstimateRequest {requestedDate:string;deliveryWindow:string;instructions?:string;}
 export interface CustomerInvoiceLineItem {id:string;description:string;fuelType:string;gallons:number;pricePerGallon:number;subtotal:number;tax:number;total:number;driverJobId:string;jobNumber:string;}
 export interface CustomerInvoice {id:string;invoiceNumber:string;customerId:string;customerName:string;status:string;statusLabel:string;statusTone:string;statusGroup:string;canPay:boolean;isOpen:boolean;isOverdue:boolean;issueDate?:string;dueDate?:string;paidDate?:string;subtotal:number;taxTotal:number;total:number;notes?:string;lineItems:CustomerInvoiceLineItem[];createdAt:string;updatedAt:string;}
+export interface ApiNotification {id:string;category:string;type:string;priority:string;title:string;message:string;entityType:string;entityId:string;link?:string;isRead:boolean;createdAt:string;}
 @Injectable({providedIn:'root'}) export class CustomerApiService {
   private readonly http=inject(HttpClient);
   getCurrentCustomer():Observable<CustomerProfile>{return this.http.get<ApiResponse<CustomerProfile>>(`${environment.apiUrl}/customer/me`).pipe(map(r=>enrichProfile(r.data)));}
@@ -36,4 +37,7 @@ export interface CustomerInvoice {id:string;invoiceNumber:string;customerId:stri
   getInvoices():Observable<CustomerInvoice[]>{return this.http.get<ApiResponse<CustomerInvoice[]>>(`${environment.apiUrl}/invoice/app`).pipe(map(r=>(r.data??[]).map(enrichInvoice)));}
   getInvoice(id:string):Observable<CustomerInvoice>{return this.http.get<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}`).pipe(map(r=>enrichInvoice(r.data)));}
   payInvoice(id:string):Observable<CustomerInvoice>{return this.http.post<ApiResponse<CustomerInvoice>>(`${environment.apiUrl}/invoice/app/${id}/pay`,{}).pipe(map(r=>enrichInvoice(r.data)));}
+  getNotifications():Observable<ApiNotification[]>{return this.http.get<ApiResponse<ApiNotification[]>>(`${environment.apiUrl}/notification`,{params:{limit:100}}).pipe(map(r=>r.data??[]));}
+  markNotificationRead(id:string):Observable<boolean>{return this.http.patch<ApiResponse<boolean>>(`${environment.apiUrl}/notification/${id}/read`,{}).pipe(map(r=>r.data));}
+  markAllNotificationsRead():Observable<number>{return this.http.patch<ApiResponse<number>>(`${environment.apiUrl}/notification/read-all`,{}).pipe(map(r=>r.data));}
 }
