@@ -1,0 +1,73 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Write runtime config
+        env:
+          MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+        run: |
+          token="${MAPBOX_ACCESS_TOKEN:-}"
+          cat > public/config.js <<EOF
+          window.__wetfuelConfig = {
+            mapboxAccessToken: '${token}',
+          };
+          EOF
+
+      - run: npm ci
+      - run: npx ng build --configuration production
+      - run: npx cap add ios && npx cap sync ios
+
+      - name: Resolve Swift packages
+        working-directory: ios/App
+        run: xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+
+      - name: Build unsigned iPhone app
+        working-directory: ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            build
+
+      - name: Package IPA
+        run: |
+          APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/App.app"
+          if [ ! -d "$APP" ]; then
+            echo "App.app not found at $APP"
+            find "$RUNNER_TEMP/DerivedData" -name '*.app' -print
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP" "$RUNNER_TEMP/Payload/App.app"
+          cd "$RUNNER_TEMP"
+          zip -qr WetFuel-Customer.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WetFuel-Customer-iOS
+          path: ${{ runner.temp }}/WetFuel-Customer.ipa
+          if-no-files-found: error
+          retention-days: 7
