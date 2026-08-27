@@ -1,13 +1,24 @@
 @import "sweetalert2/dist/sweetalert2.min.css";
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; background: var(--wf-background); color: var(--wf-text); }
+html, body {
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  height: -webkit-fill-available;
+  height: var(--wf-app-height, 100%);
+  overflow: hidden;
+  background: var(--wf-background);
+  color: var(--wf-text);
+}
 body { font-family: var(--ion-font-family); }
+ion-app, ion-router-outlet { width: 100%; height: 100%; }
 a { text-decoration: none; }
 
 .swal2-container.swal2-backdrop-show { background: rgba(0, 0, 0, 0.52); }
 .wf-swal-popup {
-  width: min(28rem, calc(100vw - 2rem)) !important;
+  width: min(28rem, calc(100% - 2rem)) !important;
   border: 1px solid var(--wf-border) !important;
   border-radius: 20px !important;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28) !important;
@@ -145,7 +156,7 @@ ion-checkbox::part(container) { margin-top: 2px; }
 .auth-card { margin-top: 70px !important; border-radius: 26px !important; padding: 22px; box-shadow: var(--wf-shadow) !important; --background: var(--wf-surface); color: var(--wf-text); }
 .auth-card h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.04em; }
 
-.splash-page { min-height: 100vh; background: radial-gradient(circle at 70% 20%, var(--wf-primary-tint) 0%, var(--wf-primary) 43%, var(--wf-primary-shade) 100%); color: #fff; display: grid; place-items: center; padding: 30px; text-align: center; }
+.splash-page { min-height: 100%; min-height: -webkit-fill-available; background: radial-gradient(circle at 70% 20%, var(--wf-primary-tint) 0%, var(--wf-primary) 43%, var(--wf-primary-shade) 100%); color: #fff; display: grid; place-items: center; padding: 30px; text-align: center; }
 .splash-logo { display: block; height: 4.5rem; width: auto; max-width: 20rem; object-fit: contain; margin: 0 auto 22px; border-radius: 0.9rem; background: #0b0b0b; padding: 0.5rem 0.85rem; box-shadow: 0 30px 60px rgba(0,0,0,.25); }
 .splash-page h1 { font-size: 46px; margin: 0; letter-spacing: -.06em; }
 .splash-page p { color: rgba(255,255,255,.72); line-height: 1.6; max-width: 390px; }

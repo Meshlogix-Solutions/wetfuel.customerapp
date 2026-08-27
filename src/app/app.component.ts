@@ -21,8 +21,32 @@ export class AppComponent {
         }
       });
     }
+    if(Capacitor.getPlatform()==='ios'){
+      this.fixIosViewport();
+    }
     addIcons({
   'arrow-back-outline':arrowBackOutline,'home-outline':homeOutline,'notifications-outline':notificationsOutline,'person-outline':personOutline,'receipt-outline':receiptOutline,'cube-outline':cubeOutline,'location-outline':locationOutline,'chevron-forward-outline':chevronForwardOutline,'calendar-outline':calendarOutline,'time-outline':timeOutline,'truck-outline':carOutline,'call-outline':callOutline,'add-outline':addOutline,'card-outline':cardOutline,'document-text-outline':documentTextOutline,'camera-outline':cameraOutline,'qr-code-outline':qrCodeOutline,'business-outline':businessOutline,'settings-outline':settingsOutline,'log-out-outline':logOutOutline,'checkmark-circle-outline':checkmarkCircleOutline,'warning-outline':warningOutline,'navigate-outline':navigateOutline,'download-outline':downloadOutline,'mail-outline':mailOutline,'information-circle-outline':informationCircleOutline,'search-outline':searchOutline,'filter-outline':filterOutline,'pencil-outline':pencilOutline,'trash-outline':trashOutline,'shield-checkmark-outline':shieldCheckmarkOutline,'wallet-outline':walletOutline,'car-sport-outline':carSportOutline,'list-outline':listOutline,'water-outline':waterOutline,'cash-outline':cashOutline,'chevron-down-outline':chevronDownOutline,'alert-circle-outline':alertCircleOutline,'checkmark-done-outline':checkmarkDoneOutline,'add-circle-outline':addCircleOutline,'eye-outline':eyeOutline,'eye-off-outline':eyeOffOutline,'close-circle-outline':closeCircleOutline,'grid-outline':gridOutline,'ellipse-outline':ellipseOutline
 });
+  }
+
+  /**
+   * WKWebView often reports width/height and safe-area insets as 0 until the first
+   * orientation change. Force the same relayout that rotation would trigger.
+   */
+  private fixIosViewport(): void {
+    const apply = () => {
+      const viewport = window.visualViewport;
+      const height = Math.round(viewport?.height ?? window.innerHeight);
+      const width = Math.round(viewport?.width ?? window.innerWidth);
+      const root = document.documentElement;
+      if (width > 0) root.style.setProperty('--wf-app-width', `${width}px`);
+      if (height > 0) root.style.setProperty('--wf-app-height', `${height}px`);
+      window.dispatchEvent(new Event('resize'));
+    };
+    apply();
+    requestAnimationFrame(apply);
+    [50, 200, 500].forEach(ms => window.setTimeout(apply, ms));
+    window.visualViewport?.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', () => window.setTimeout(apply, 50));
   }
 }

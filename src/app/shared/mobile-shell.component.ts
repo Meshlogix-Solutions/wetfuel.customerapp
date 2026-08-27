@@ -70,7 +70,7 @@ export interface RefreshRequest { complete: () => void; }
   `,
   styles: [`
     :host{display:contents}
-    .app-frame{min-height:100%;background:var(--wf-background)}
+    .app-frame{min-height:100%;width:100%;max-width:100%;overflow-x:hidden;background:var(--wf-background)}
     .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:max(14px,env(safe-area-inset-top)) 16px 12px;background:color-mix(in srgb, var(--wf-surface) 94%, transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--wf-border)}
     .topbar-left,.topbar-actions{display:flex;align-items:center;gap:10px}.topbar h1{margin:1px 0 0;font-size:22px;letter-spacing:-.035em;color:var(--wf-text);line-height:1.15}.topbar h1 .title-accent{color:var(--wf-primary)}.eyebrow{color:var(--wf-muted);font-size:13px;font-weight:600;text-transform:none;letter-spacing:0}
     .top-icon{position:relative;width:41px;height:41px;border:1px solid var(--wf-border);border-radius:13px;background:var(--wf-surface);display:grid;place-items:center;color:var(--wf-primary);text-decoration:none;flex:0 0 auto}.top-icon ion-icon{font-size:21px}
