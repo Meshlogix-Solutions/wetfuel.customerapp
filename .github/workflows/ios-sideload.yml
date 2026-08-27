@@ -30,6 +30,10 @@ jobs:
       - run: npx ng build --configuration production
       - run: npx cap add ios && npx cap sync ios
 
+      - name: Apply WetFuel app icon
+        run: |
+          cp resources/icon.png ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+
       - name: Resolve Swift packages
         working-directory: ios/App
         run: xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
