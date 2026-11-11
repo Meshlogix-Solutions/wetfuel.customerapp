@@ -36,16 +36,26 @@ interface CustomerOrderDraft {
 }
 
 const DRAFT_KEY_PREFIX = 'wetfuel_customer_order_draft';
-const DEFAULT_DRAFT: CustomerOrderDraft = {
-  selectedLocation: null,
-  selectedEquipment: null,
-  fuelType: 'diesel',
-  gallons: 500,
-  deliveryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-  deliveryWindow: '8:00 AM–10:00 AM',
-  instructions: '',
-  fillPreference: 'requested',
-};
+
+function localToday(): string {
+  const date = new Date();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function defaultDraft(): CustomerOrderDraft {
+  return {
+    selectedLocation: null,
+    selectedEquipment: null,
+    fuelType: 'diesel',
+    gallons: 500,
+    deliveryDate: localToday(),
+    deliveryWindow: '8:00 AM–10:00 AM',
+    instructions: '',
+    fillPreference: 'requested',
+  };
+}
 
 // Like DriverStateService, this service holds only state that genuinely spans screens.
 // Customer profile, equipment, orders, and jobs belong to their pages and are fetched there.
@@ -169,16 +179,24 @@ export class CustomerStateService {
   }
 
   clearOrderDraft(): void {
+    const draft = defaultDraft();
     localStorage.removeItem(this.draftKey());
     this.selectedLocation.set(null);
     this.selectedEquipment.set(null);
-    this.fuelType.set(DEFAULT_DRAFT.fuelType);
-    this.gallons.set(DEFAULT_DRAFT.gallons);
-    this.deliveryDate.set(DEFAULT_DRAFT.deliveryDate);
-    this.deliveryWindow.set(DEFAULT_DRAFT.deliveryWindow);
-    this.instructions.set(DEFAULT_DRAFT.instructions);
-    this.fillPreference.set(DEFAULT_DRAFT.fillPreference);
+    this.fuelType.set(draft.fuelType);
+    this.gallons.set(draft.gallons);
+    this.deliveryDate.set(draft.deliveryDate);
+    this.deliveryWindow.set(draft.deliveryWindow);
+    this.instructions.set(draft.instructions);
+    this.fillPreference.set(draft.fillPreference);
     this.invalidateEstimate();
+  }
+
+  ensureDeliveryDate(): void {
+    const today = localToday();
+    if (this.deliveryDate() && this.deliveryDate() >= today) return;
+    this.deliveryDate.set(today);
+    this.persistDraft();
   }
 
   address(site: CustomerSite): string {
@@ -219,19 +237,21 @@ export class CustomerStateService {
 
   private restoreDraft(): CustomerOrderDraft {
     const raw = localStorage.getItem(this.draftKey());
-    if (!raw) return DEFAULT_DRAFT;
+    const fallback = defaultDraft();
+    if (!raw) return fallback;
     try {
-      const draft = { ...DEFAULT_DRAFT, ...JSON.parse(raw) } as CustomerOrderDraft;
+      const draft = { ...fallback, ...JSON.parse(raw) } as CustomerOrderDraft;
       const legacyFuelTypes: Record<string, string> = {
         'Ultra-Low Sulfur Diesel': 'diesel',
         'Off-road Diesel': 'diesel',
         'Regular Unleaded': 'gasoline_regular',
       };
       draft.fuelType = legacyFuelTypes[draft.fuelType] ?? draft.fuelType;
+      if (!draft.deliveryDate || draft.deliveryDate < localToday()) draft.deliveryDate = localToday();
       return draft;
     } catch {
       localStorage.removeItem(this.draftKey());
-      return DEFAULT_DRAFT;
+      return fallback;
     }
   }
 

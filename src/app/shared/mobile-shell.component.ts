@@ -89,7 +89,11 @@ export interface RefreshRequest { complete: () => void; }
     .bottom-nav ion-icon{width:20px;height:20px;font-size:20px;flex:0 0 auto;display:block}
     .bottom-nav a.active{color:var(--wf-primary);background:var(--wf-primary-soft)}
     @media(max-width:430px){.refresh-action{display:none}}
-    @media(max-width:380px){.bottom-nav a span{display:none}.bottom-nav ion-icon{width:22px;height:22px;font-size:22px}}
+    @media(max-width:380px){
+      .bottom-nav{height:68px;padding:4px 1px}
+      .bottom-nav a{font-size:8px;gap:3px;padding:0 1px}
+      .bottom-nav ion-icon{width:18px;height:18px;font-size:18px}
+    }
   `]
 })
 export class MobileShellComponent {
